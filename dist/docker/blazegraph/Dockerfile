@@ -1,5 +1,5 @@
 # build blazegraph vocabularios for CIDOC-CRM using gradle
-FROM gradle:6.5.0-jdk8
+FROM gradle:6.5.0-jdk14
 COPY vocabularies /vocabularies
 WORKDIR /vocabularies
 RUN gradle build
