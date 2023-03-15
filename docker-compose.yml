@@ -8,12 +8,18 @@ services:
       - "10214:10214"
     volumes:
       - .:/workdir
+      - node_modules:/workdir/node_modules
     networks:
       - default
   
 # Define network default as external docker network.
 # Specify the network name in the .env file as follows:
 # DOCKER_NETWORK=my-network
-networks:
-  default:
-    name: ${DOCKER_NETWORK}
+#networks:
+#  default:
+#    name: ${DOCKER_NETWORK}
+#    external: true
+    
+volumes:
+  node_modules:
+  
