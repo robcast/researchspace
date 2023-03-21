@@ -21,14 +21,15 @@ import { find } from 'lodash';
 import { createElement } from 'react';
 import * as D from 'react-dom-factories';
 
-//import * as DatePicker from 'react-multi-date-picker';
 import DatePicker from 'react-multi-date-picker';
 import DateObject from 'react-date-object';
-import arabic from 'react-date-object/calendars/arabic';
-import arabic_en from "react-date-object/locales/arabic_en"
-
-//import * as moment from 'moment';
-//import Moment = moment.Moment;
+import * as ArabicCalendar from 'react-date-object/calendars/arabic';
+import * as PersianCalendar from 'react-date-object/calendars/persian';
+import * as JalaliCalendar from 'react-date-object/calendars/jalali';
+import * as IndianCalendar from 'react-date-object/calendars/indian';
+import * as ArabicEnLocale from 'react-date-object/locales/arabic_en';
+import * as PersianEnLocale from 'react-date-object/locales/persian_en';
+import * as IndianEnLocale from 'react-date-object/locales/indian_en';
 
 import { Rdf, vocabularies, XsdDataTypeValidation } from 'platform/api/rdf';
 
@@ -37,19 +38,19 @@ import { FieldValue, AtomicValue, EmptyValue } from '../FieldValues';
 import { SingleValueInput, AtomicValueInput, AtomicValueInputProps } from './SingleValueInput';
 import { ValidationMessages } from './Decorations';
 
-import './datetime.scss';
+//import './calendardate.scss';
 
-// input format patterns include timezone offset to be compatible with XSD specification
-export const INPUT_XSD_DATE_FORMAT = 'YYYY-MM-DDZZ';
-export const INPUT_XSD_TIME_FORMAT = 'HH:mm:ssZZ';
+// input format patterns include timezone offset to be compatible with XSD specification(?)
+export const INPUT_XSD_DATE_FORMAT = 'YYYY-MM-DD';
 // output format patterns for UTC moments (without timezone offset), compatible with ISO and XSD
-export const OUTPUT_UTC_DATE_FORMAT = 'YYYY-MM-DD';
-export const OUTPUT_UTC_TIME_FORMAT = 'HH:mm:ss';
+export const OUTPUT_DATE_FORMAT = 'YYYY-MM-DD';
 
-export type DatePickerMode = 'date' | 'time' | 'dateTime';
+export type DatePickerMode = 'date' | 'year';
+export type DatePickerCalendar = 'gregorian' | 'islamic' | 'persian' | 'jalali' | 'indian';
 
 export interface CalendarDatePickerInputProps extends AtomicValueInputProps {
   mode?: DatePickerMode;
+  calendar?: DatePickerCalendar;
   placeholder?: string;
 }
 
@@ -57,24 +58,46 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   private get datatype() {
     return this.props.definition.xsdDatatype || vocabularies.xsd.dateTime;
   }
-
+  
   render() {
     const rdfNode = FieldValue.asRdfNode(this.props.value);
     const dateLiteral = dateLiteralFromRdfNode(rdfNode);
     const dateObject = dateObjectFromRdfLiteral(dateLiteral);
-    //const utcMoment = utcMomentFromRdfLiteral(dateLiteral);
-    // Important! react-datetime becomes really buggy when Moment value
-    // with "UTC" internal representation is provided as value, so we need to:
-    // 1. intially convert it to "local" internal representation
-    //    as if current time zone was UTC+00;
-    // 2. after date picker returns changed Momeent value we should
-    //    convert it back using `localMomentAsIfItWasUtc()`
-    //const localMoment = utcMomentAsIfItWasLocal(utcMoment);
 
+    // mode: date, year
     const mode = this.props.mode || getModeFromDatatype(this.datatype);
+    let format = 'YYYY-MM-DD';
+    let yearPicker = false;
+    if (mode === 'year') {
+      yearPicker = true;
+      format = 'YYYY';
+      dateObject?.setFormat(format);
+    }
+    
+    // calendar: islamic, gregorian (default)
+    let calendar: any;
+    let locale: any;
+    switch (this.props.calendar) {
+      case 'islamic':
+        calendar = ArabicCalendar;
+        locale = ArabicEnLocale;
+        break;
+      case 'persian':
+        calendar = PersianCalendar;
+        locale = PersianEnLocale;
+        break;
+      case 'jalali':
+        calendar = JalaliCalendar;
+        locale = PersianEnLocale;
+        break;
+      case 'indian':
+        calendar = IndianCalendar;
+        locale = IndianEnLocale;
+        break;
+    }
 
     const displayedDate = dateObject
-      ? dateObject.convert(arabic, arabic_en)
+      ? dateObject
       : dateLiteral
       ? dateLiteral.value
       : rdfNode && rdfNode.isLiteral()
@@ -90,12 +113,13 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
       { className: 'date-picker-field' },
 
       createElement(DatePicker, {
-        className: 'rmdp-prime',
+        //className: 'rmdp-prime',
         onChange: this.onDateSelected, // for keyboard changes
-        calendar: arabic,
-        locale: arabic_en,
+        onlyYearPicker: yearPicker,
+        calendar: calendar,
+        locale: locale,
         value: displayedDate,
-        //currentDate: dateObject,
+        format: format,
         placeholder: placeholder
       }),
 
@@ -111,14 +135,11 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
       parsed = this.parse(value);
     } else {
       // otherwise we format to UTC
-      const utcMoment = value;
       const mode = getModeFromDatatype(this.datatype);
       const formattedDate =
         mode === 'date'
-          ? utcMoment.format(OUTPUT_UTC_DATE_FORMAT)
-          : mode === 'time'
-          ? utcMoment.format(OUTPUT_UTC_TIME_FORMAT)
-          : utcMoment.format();
+          ? value.format(OUTPUT_DATE_FORMAT)
+          : value.format();
       parsed = this.parse(formattedDate);
     }
     this.setAndValidate(parsed);
@@ -139,14 +160,13 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
 export function getModeFromDatatype(datatype: Rdf.Iri): DatePickerMode {
   const parsed = XsdDataTypeValidation.parseXsdDatatype(datatype);
   if (parsed && parsed.prefix === 'xsd') {
+    // TODO: handle dateTime?
     switch (parsed.localName) {
       case 'date':
         return 'date';
-      case 'time':
-        return 'time';
     }
   }
-  return 'dateTime';
+  return 'date';
 }
 
 function dateLiteralFromRdfNode(node: Rdf.Node | undefined): Rdf.Literal | undefined {
@@ -169,38 +189,8 @@ export function dateObjectFromRdfLiteral(literal: Rdf.Literal | undefined): Date
   return parsedDate;
 }
 
-/*
-export function utcMomentFromRdfLiteral(literal: Rdf.Literal | undefined): Moment | undefined {
-  if (!literal) {
-    return undefined;
-  }
-  const mode = getModeFromDatatype(literal.datatype);
-  const parsedMoment =
-    mode === 'date'
-      ? moment.utc(literal.value, INPUT_XSD_DATE_FORMAT)
-      : mode === 'time'
-      ? moment.utc(literal.value, INPUT_XSD_TIME_FORMAT)
-      : moment.utc(literal.value);
-  return parsedMoment.isValid() ? parsedMoment : undefined;
-}
-
-function utcMomentAsIfItWasLocal(utcMoment: Moment | undefined): Moment | undefined {
-  if (!utcMoment) {
-    return undefined;
-  }
-  const localOffset = moment().utcOffset();
-  return moment(utcMoment).subtract(localOffset, 'm').local();
-}
-
-function localMomentAsIfItWasUtc(localMoment: Moment) {
-  const localOffset = moment().utcOffset();
-  return moment(localMoment).utc().add(localOffset, 'm');
-}
-*/
-
 function defaultPlaceholder(definition: FieldDefinition, mode: DatePickerMode) {
-  const valueType = mode === 'time' ? 'time' : 'date';
-  const fieldName = (getPreferredLabel(definition.label) || valueType).toLocaleLowerCase();
+  const fieldName = (getPreferredLabel(definition.label) || mode).toLocaleLowerCase();
   return `Select or enter ${fieldName} here...`;
 }
 
