@@ -18,5 +18,5 @@ VOLUME ["/workdir/node_modules"]
 
 EXPOSE 3000 10214
 
-CMD ["tail", "-f", "/dev/null"]
-#CMD ["/workdir/gradlew", "run"]
+#CMD ["tail", "-f", "/dev/null"]
+CMD ["/workdir/gradlew", "appStart"]
