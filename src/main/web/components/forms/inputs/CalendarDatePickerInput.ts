@@ -1,5 +1,6 @@
 /**
- * ResearchSpace
+ * CalendarDatePicker
+ * Copyright (C) 2023, Robert Casties, MPIWG
  * Copyright (C) 2020, © Trustees of the British Museum
  * Copyright (C) 2015-2019, metaphacts GmbH
  *
@@ -23,10 +24,12 @@ import * as D from 'react-dom-factories';
 
 import DatePicker from 'react-multi-date-picker';
 import DateObject from 'react-date-object';
+import * as GregorianCalendar from 'react-date-object/calendars/gregorian';
 import * as ArabicCalendar from 'react-date-object/calendars/arabic';
 import * as PersianCalendar from 'react-date-object/calendars/persian';
 import * as JalaliCalendar from 'react-date-object/calendars/jalali';
 import * as IndianCalendar from 'react-date-object/calendars/indian';
+import * as GregorianEnLocale from 'react-date-object/locales/gregorian_en';
 import * as ArabicEnLocale from 'react-date-object/locales/arabic_en';
 import * as PersianEnLocale from 'react-date-object/locales/persian_en';
 import * as IndianEnLocale from 'react-date-object/locales/indian_en';
@@ -38,7 +41,7 @@ import { FieldValue, AtomicValue, EmptyValue } from '../FieldValues';
 import { SingleValueInput, AtomicValueInput, AtomicValueInputProps } from './SingleValueInput';
 import { ValidationMessages } from './Decorations';
 
-//import './calendardate.scss';
+import './calendardate.scss';
 
 // input format patterns include timezone offset to be compatible with XSD specification(?)
 export const INPUT_XSD_DATE_FORMAT = 'YYYY-MM-DD';
@@ -114,6 +117,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
 
       createElement(DatePicker, {
         //className: 'rmdp-prime',
+        inputClass: 'form-control',
         onChange: this.onDateSelected, // for keyboard changes
         onlyYearPicker: yearPicker,
         calendar: calendar,
@@ -128,18 +132,15 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   }
 
   private onDateSelected = (value: string | DateObject) => {
-    let parsed;
+    let parsed: AtomicValue | EmptyValue;
     if (typeof value === 'string') {
       // if user enter a string without using the date picker
       // we pass direclty to validation
       parsed = this.parse(value);
     } else {
-      // otherwise we format to UTC
-      const mode = getModeFromDatatype(this.datatype);
-      const formattedDate =
-        mode === 'date'
-          ? value.format(OUTPUT_DATE_FORMAT)
-          : value.format();
+      // otherwise we convert to gregorian calendar and format
+      const gregorianDate = value.convert(GregorianCalendar, GregorianEnLocale);
+      const formattedDate = gregorianDate.format(OUTPUT_DATE_FORMAT);
       parsed = this.parse(formattedDate);
     }
     this.setAndValidate(parsed);

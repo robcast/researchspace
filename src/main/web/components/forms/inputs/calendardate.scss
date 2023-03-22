@@ -1,5 +1,6 @@
 /**
- * ResearchSpace
+ * CalendarDatePicker
+ * Copyright (C) 2023, Robert Casties, MPIWG
  * Copyright (C) 2020, © Trustees of the British Museum
  * Copyright (C) 2015-2019, metaphacts GmbH
  *
@@ -16,16 +17,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-@import '~react-multi-calendar-date/styles/layouts/prime.css';
+@import '~react-multi-date-picker/styles/layouts/prime.css';
 
-.rdtPicker {
-  width: auto;
-}
-
-.rdtPicker td {
-  cursor: pointer;
-}
-.rdtPicker td.rdtDay:hover {
-  background: #eeeeee;
-  cursor: pointer;
+.rmdp-container {
+  width: 100%;
 }
