@@ -57,7 +57,20 @@ export interface CalendarDatePickerInputProps extends AtomicValueInputProps {
   placeholder?: string;
 }
 
-export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePickerInputProps, {}> {
+export interface CalendarDatePickerInputState {
+  mode?: DatePickerMode;
+  calendar?: DatePickerCalendar;
+}
+
+export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePickerInputProps, CalendarDatePickerInputState> {
+  constructor(props: CalendarDatePickerInputProps, context: any) {
+    super(props, context);
+    this.state = {
+      mode: props.mode || getModeFromDatatype(this.datatype) || 'day',
+      calendar: props.calendar || 'gregorian',
+    };
+  }
+
   private get datatype() {
     return this.props.definition.xsdDatatype || vocabularies.xsd.dateTime;
   }
@@ -68,7 +81,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
     const dateObject = dateObjectFromRdfLiteral(dateLiteral);
 
     // mode: date, year
-    const mode = this.props.mode || getModeFromDatatype(this.datatype);
+    const mode = this.state.mode;
     let format = 'YYYY-MM-DD';
     let yearPicker = false;
     if (mode === 'year') {

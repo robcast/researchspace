@@ -54,13 +54,18 @@ import {
 
 import { InputKind } from './InputCommpons';
 
-export interface CompositeInputProps extends SingleValueInputProps {
+export interface CompositeTimespanState {
+  timespanType?: string;
+  timespanCalendar?: string;
+}
+
+export interface CompositeTimespanInputProps extends SingleValueInputProps {
   fields: ReadonlyArray<FieldDefinitionProp>;
   newSubjectTemplate?: string;
   children?: ReactNode;
 }
 
-type ComponentProps = CompositeInputProps & Props<CompositeInput>;
+type ComponentProps = CompositeTimespanInputProps & Props<CompositeTimespanInput>;
 
 interface InputState {
   readonly dataState: DataState.Ready | DataState.Verifying;
@@ -75,7 +80,7 @@ const VALIDATION_DEBOUNCE_DELAY = 500;
 
 type ChildInput = MultipleValuesInput<MultipleValuesProps, unknown>;
 
-export class CompositeInput extends SingleValueInput<ComponentProps, {}> {
+export class CompositeTimespanInput extends SingleValueInput<ComponentProps, CompositeTimespanState> {
   public static readonly inputKind = InputKind.CompositeInput;
 
   private readonly cancellation = new Cancellation();
@@ -88,11 +93,15 @@ export class CompositeInput extends SingleValueInput<ComponentProps, {}> {
 
   constructor(props: ComponentProps, context: any) {
     super(props, context);
+    this.state = {
+      timespanType: undefined,
+      timespanCalendar: undefined
+    }
   }
 
-  private getHandler(): CompositeHandler {
+  private getHandler(): CompositeTimespanHandler {
     const { handler } = this.props;
-    if (!(handler instanceof CompositeHandler)) {
+    if (!(handler instanceof CompositeTimespanHandler)) {
       throw new Error('Invalid value handler for CompositeInput');
     }
     return handler;
@@ -183,6 +192,28 @@ export class CompositeInput extends SingleValueInput<ComponentProps, {}> {
       this.startValidatingField(def, oldValue, newValue);
     }
 
+    if (def.id === 'type') {
+      const field = newValue.fields.get('type')
+      const value = field.values.first();
+      const label = value.label;
+      if (label !== this.state.timespanType) {
+        this.setState({timespanType: label});
+        const dateDateRefs = this.inputRefs.get('date_date');
+        if (dateDateRefs) {
+          for (const ref of dateDateRefs) {
+            ref.setState({mode: label});
+          }
+        }
+      }
+    }
+    if (def.id === 'calendar') {
+      const field = newValue.fields.get('calendar')
+      const value = field.values.first();
+      const label = value.label;
+      if (label !== this.state.timespanCalendar) {
+        this.setState({timespanCalendar: label});        
+      }
+    }
     return newValue;
   }
 
@@ -265,8 +296,33 @@ export class CompositeInput extends SingleValueInput<ComponentProps, {}> {
       return createElement(Spinner);
     }
     
-    let calendar: string;
+    const timespanType = this.state.timespanType;
+    const timespanCalendar = this.state.timespanCalendar;
+
+    const dateDateRefs = this.inputRefs.get('date_date');
+    if (dateDateRefs) {
+      for (const ref of dateDateRefs) {
+        //ref.setState({mode: timespanType});
+      }
+    }
     
+
+    Children.forEach(this.props.children, (child: React.ReactNode) => {
+      const name = child.props.for;
+      switch (name) {
+        case 'type':
+          break;
+        case 'calendar':
+          break;
+        case 'date_date':
+          /* {
+            calendar: timespanCalendar,
+            mode: timespanType
+          }; */
+          break;
+      }
+    })
+
     const children = renderFields(
       this.props.children,
       composite,
@@ -275,18 +331,6 @@ export class CompositeInput extends SingleValueInput<ComponentProps, {}> {
       this.onFieldValuesChanged,
       this.onMountInput
     );
-
-    Children.forEach(children, (child: React.ReactNode) => {
-      const name = child.props.for;
-      switch (name) {
-        case 'type':
-          break;
-        case 'calendar':
-          break;
-        case 'date_date':
-          break;
-      }
-    })
 
     return createElement('div', { className: 'composite-input' }, children);
   }
@@ -304,19 +348,19 @@ export class CompositeInput extends SingleValueInput<ComponentProps, {}> {
     refs[inputIndex] = inputRef;
   };
 
-  static makeHandler(props: SingleValueHandlerProps<CompositeInputProps>): CompositeHandler {
-    return new CompositeHandler(props);
+  static makeHandler(props: SingleValueHandlerProps<CompositeTimespanInputProps>): CompositeTimespanHandler {
+    return new CompositeTimespanHandler(props);
   }
 }
 
-class CompositeHandler implements SingleValueHandler {
+class CompositeTimespanHandler implements SingleValueHandler {
   readonly newSubjectTemplate: string | undefined;
   readonly definitions: Immutable.Map<string, FieldDefinition>;
   readonly inputs: Immutable.Map<string, ReadonlyArray<InputMapping>>;
   readonly configurationErrors: Immutable.List<FieldError>;
   readonly handlers: Immutable.Map<string, ReadonlyArray<MultipleValuesHandler>>;
 
-  constructor({ baseInputProps }: SingleValueHandlerProps<CompositeInputProps>) {
+  constructor({ baseInputProps }: SingleValueHandlerProps<CompositeTimespanInputProps>) {
     this.newSubjectTemplate = baseInputProps.newSubjectTemplate;
     this.definitions = normalizeDefinitons(baseInputProps.fields);
     const { inputs, errors } = validateFieldConfiguration(this.definitions, baseInputProps.children);
@@ -479,6 +523,6 @@ function reduceFieldValue(
   return CompositeValue.set(previous, { fields });
 }
 
-SingleValueInput.assertStatic(CompositeInput);
+SingleValueInput.assertStatic(CompositeTimespanInput);
 
-export default CompositeInput;
+export default CompositeTimespanInput;
