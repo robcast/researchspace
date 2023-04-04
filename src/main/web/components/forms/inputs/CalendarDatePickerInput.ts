@@ -54,6 +54,7 @@ export type DatePickerCalendar = 'gregorian' | 'islamic' | 'persian' | 'jalali' 
 export interface CalendarDatePickerInputProps extends AtomicValueInputProps {
   mode?: DatePickerMode;
   calendar?: DatePickerCalendar;
+  calendarselector?: boolean;
   placeholder?: string;
 }
 
@@ -93,7 +94,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
     // calendar: islamic, gregorian (default)
     let calendar: any;
     let locale: any;
-    switch (this.props.calendar) {
+    switch (this.state.calendar) {
       case 'islamic':
         calendar = ArabicCalendar;
         locale = ArabicEnLocale;
@@ -125,11 +126,11 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
         ? defaultPlaceholder(this.props.definition, mode)
         : this.props.placeholder;
 
+      
     return D.div(
-      { className: 'date-picker-field' },
+      { className: 'date-picker-field' + this.props.calendarselector ? ' with-selector' : '' },
 
       createElement(DatePicker, {
-        //className: 'rmdp-prime',
         inputClass: 'form-control',
         onChange: this.onDateSelected, // for keyboard changes
         onlyYearPicker: yearPicker,
@@ -139,9 +140,28 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
         format: format,
         placeholder: placeholder
       }),
+      
+      // create calendar selector element if necessary
+      this.props.calendarselector ? D.label(
+        { className: 'caldate-label'}, 
+        'Calendar',
+        D.select(
+          { value: this.state.calendar, onChange: this.onCalendarChange }, 
+          D.option({value: 'gregorian'}, 'gregorian'),
+          D.option({value: 'islamic'}, 'islamic'),
+          D.option({value: 'persian'}, 'persian'),
+          D.option({value: 'jalali'}, 'jalali'),
+          D.option({value: 'indian'}, 'indian'),
+        )
+      ) : null,
 
       createElement(ValidationMessages, { errors: FieldValue.getErrors(this.props.value) })
     );
+  }
+
+  private onCalendarChange = (event: any) => {
+    const value = event.target.value;
+    this.setState({ calendar : value });
   }
 
   private onDateSelected = (value: string | DateObject) => {

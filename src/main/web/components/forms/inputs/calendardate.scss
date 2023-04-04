@@ -19,6 +19,19 @@
  */
 @import '~react-multi-date-picker/styles/layouts/prime.css';
 
-.rmdp-container {
+.date-picker-field .rmdp-container {
   width: 100%;
+}
+
+.date-picker-field.with-selector .rmdp-container {
+  width: auto;
+}
+
+.caldate-label {
+  padding-left: 0.5em;
+}
+
+.caldate-label select {
+  margin-left: 0.5em;
+  padding-right: 1em;
 }
