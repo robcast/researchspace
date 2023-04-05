@@ -48,7 +48,7 @@ export const INPUT_XSD_DATE_FORMAT = 'YYYY-MM-DD';
 // output format patterns for UTC moments (without timezone offset), compatible with ISO and XSD
 export const OUTPUT_DATE_FORMAT = 'YYYY-MM-DD';
 
-export type DatePickerMode = 'date' | 'year';
+export type DatePickerMode = 'day' | 'year';
 export type DatePickerCalendar = 'gregorian' | 'islamic' | 'persian' | 'jalali' | 'indian';
 
 export interface CalendarDatePickerInputProps extends AtomicValueInputProps {
@@ -59,7 +59,6 @@ export interface CalendarDatePickerInputProps extends AtomicValueInputProps {
 }
 
 export interface CalendarDatePickerInputState {
-  mode?: DatePickerMode;
   calendar?: DatePickerCalendar;
 }
 
@@ -67,7 +66,6 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   constructor(props: CalendarDatePickerInputProps, context: any) {
     super(props, context);
     this.state = {
-      mode: props.mode || getModeFromDatatype(this.datatype) || 'day',
       calendar: props.calendar || 'gregorian',
     };
   }
@@ -81,8 +79,8 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
     const dateLiteral = dateLiteralFromRdfNode(rdfNode);
     const dateObject = dateObjectFromRdfLiteral(dateLiteral);
 
-    // mode: date, year
-    const mode = this.state.mode;
+    // mode: day, year
+    const mode = this.props.mode || getModeFromDatatype(this.datatype) || 'day';
     let format = 'YYYY-MM-DD';
     let yearPicker = false;
     if (mode === 'year') {
@@ -91,25 +89,32 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
       dateObject?.setFormat(format);
     }
     
-    // calendar: islamic, gregorian (default)
-    let calendar: any;
-    let locale: any;
-    switch (this.state.calendar) {
+    // calendar: gregorian, islamic, ...
+    // use state only with local selector
+    //const calendar = this.props.calendarselector ? this.state.calendar : this.props.calendar || 'gregorian';
+    const calendar = this.state.calendar || this.props.calendar || 'gregorian';
+    let calendarObject: any;
+    let localeObject: any;
+    switch (calendar) {
+      case 'gregorian':
+        calendarObject = GregorianCalendar;
+        localeObject = GregorianEnLocale;
+        break;
       case 'islamic':
-        calendar = ArabicCalendar;
-        locale = ArabicEnLocale;
+        calendarObject = ArabicCalendar;
+        localeObject = ArabicEnLocale;
         break;
       case 'persian':
-        calendar = PersianCalendar;
-        locale = PersianEnLocale;
+        calendarObject = PersianCalendar;
+        localeObject = PersianEnLocale;
         break;
       case 'jalali':
-        calendar = JalaliCalendar;
-        locale = PersianEnLocale;
+        calendarObject = JalaliCalendar;
+        localeObject = PersianEnLocale;
         break;
       case 'indian':
-        calendar = IndianCalendar;
-        locale = IndianEnLocale;
+        calendarObject = IndianCalendar;
+        localeObject = IndianEnLocale;
         break;
     }
 
@@ -134,8 +139,8 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
         inputClass: 'form-control',
         onChange: this.onDateSelected, // for keyboard changes
         onlyYearPicker: yearPicker,
-        calendar: calendar,
-        locale: locale,
+        calendar: calendarObject,
+        locale: localeObject,
         value: displayedDate,
         format: format,
         placeholder: placeholder
@@ -157,6 +162,12 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
 
       createElement(ValidationMessages, { errors: FieldValue.getErrors(this.props.value) })
     );
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.calendar !== this.props.calendar) {
+      this.setState({calendar: this.props.calendar});
+    }
   }
 
   private onCalendarChange = (event: any) => {

@@ -16,8 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-import * as React from 'react';
-import { createElement, Props, ReactNode, Children } from 'react';
+import { createElement, cloneElement, Props, ReactNode, Children } from 'react';
 import * as Immutable from 'immutable';
 import * as Kefir from 'kefir';
 
@@ -299,32 +298,20 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     const timespanType = this.state.timespanType;
     const timespanCalendar = this.state.timespanCalendar;
 
-    const dateDateRefs = this.inputRefs.get('date_date');
-    if (dateDateRefs) {
-      for (const ref of dateDateRefs) {
-        //ref.setState({mode: timespanType});
-      }
-    }
-    
-
-    Children.forEach(this.props.children, (child: React.ReactNode) => {
+    const updatedChildren = Children.map(this.props.children, (child: ReactNode) => {
       const name = child.props.for;
-      switch (name) {
-        case 'type':
-          break;
-        case 'calendar':
-          break;
-        case 'date_date':
-          /* {
-            calendar: timespanCalendar,
-            mode: timespanType
-          }; */
-          break;
+      if (name.startsWith('date_')) {
+        return cloneElement(child, {
+          mode: timespanType,
+          calendar: timespanCalendar
+        });
+      } else {
+        return child;
       }
     })
 
     const children = renderFields(
-      this.props.children,
+      updatedChildren,
       composite,
       this.getHandler().handlers,
       this.dataStateForField,
