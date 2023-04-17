@@ -53,12 +53,15 @@ export type DatePickerCalendar = 'gregorian' | 'islamic' | 'persian' | 'jalali' 
 
 export interface CalendarDatePickerInputProps extends AtomicValueInputProps {
   mode?: DatePickerMode;
+  yearstart?: boolean;
+  yearend?: boolean;
   calendar?: DatePickerCalendar;
   calendarselector?: boolean;
   placeholder?: string;
 }
 
 export interface CalendarDatePickerInputState {
+  mode?: DatePickerMode;
   calendar?: DatePickerCalendar;
 }
 
@@ -66,8 +69,10 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   constructor(props: CalendarDatePickerInputProps, context: any) {
     super(props, context);
     this.state = {
+      mode: props.mode || 'day',
       calendar: props.calendar || 'gregorian',
     };
+    console.log("datepicker constructor", props.for, props.mode, props.calendar);
   }
 
   private get datatype() {
@@ -80,7 +85,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
     const dateObject = dateObjectFromRdfLiteral(dateLiteral);
 
     // mode: day, year
-    const mode = this.props.mode || getModeFromDatatype(this.datatype) || 'day';
+    const mode = this.state.mode || this.props.mode || 'day';
     let format = 'YYYY-MM-DD';
     let yearPicker = false;
     if (mode === 'year') {
@@ -90,8 +95,6 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
     }
     
     // calendar: gregorian, islamic, ...
-    // use state only with local selector
-    //const calendar = this.props.calendarselector ? this.state.calendar : this.props.calendar || 'gregorian';
     const calendar = this.state.calendar || this.props.calendar || 'gregorian';
     let calendarObject: any;
     let localeObject: any;
@@ -131,7 +134,8 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
         ? defaultPlaceholder(this.props.definition, mode)
         : this.props.placeholder;
 
-      
+    console.log("datepicker render", this.props.for, mode, calendar);
+
     return D.div(
       { className: 'date-picker-field' + this.props.calendarselector ? ' with-selector' : '' },
 
@@ -165,6 +169,10 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   }
 
   componentDidUpdate(prevProps) {
+    console.log("datepicker didUpdate", this.props.for);
+    if (prevProps.mode !== this.props.mode) {
+      this.setState({mode: this.props.mode});
+    }
     if (prevProps.calendar !== this.props.calendar) {
       this.setState({calendar: this.props.calendar});
     }
@@ -177,16 +185,28 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
 
   private onDateSelected = (value: string | DateObject) => {
     let parsed: AtomicValue | EmptyValue;
-    if (typeof value === 'string') {
+    if (!value) {
+      parsed = EmptyValue;
+    } else if (typeof value === 'string') {
       // if user enter a string without using the date picker
-      // we pass direclty to validation
+      // we pass directly to validation 
+      // TODO: convert to gregorian? 
       parsed = this.parse(value);
     } else {
-      // otherwise we convert to gregorian calendar and format
-      const gregorianDate = value.convert(GregorianCalendar, GregorianEnLocale);
+      // assume date object and convert to gregorian calendar and format
+      const calendarDate = new DateObject(value);
+      if (this.state.mode === 'year') {
+        if (this.props.yearstart) {
+          calendarDate.toFirstOfYear();
+        } else if (this.props.yearend) {
+          calendarDate.toLastOfYear();
+        }
+      }
+      const gregorianDate = calendarDate.convert(GregorianCalendar);
       const formattedDate = gregorianDate.format(OUTPUT_DATE_FORMAT);
       parsed = this.parse(formattedDate);
     }
+    console.log("datepicker onDateSelected", this.props.for, parsed);
     this.setAndValidate(parsed);
   };
 
@@ -200,18 +220,6 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   }
 
   static makeHandler = AtomicValueInput.makeAtomicHandler;
-}
-
-export function getModeFromDatatype(datatype: Rdf.Iri): DatePickerMode {
-  const parsed = XsdDataTypeValidation.parseXsdDatatype(datatype);
-  if (parsed && parsed.prefix === 'xsd') {
-    // TODO: handle dateTime?
-    switch (parsed.localName) {
-      case 'date':
-        return 'date';
-    }
-  }
-  return 'date';
 }
 
 function dateLiteralFromRdfNode(node: Rdf.Node | undefined): Rdf.Literal | undefined {

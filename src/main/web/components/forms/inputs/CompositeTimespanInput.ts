@@ -27,6 +27,7 @@ import { Spinner } from 'platform/components/ui/spinner';
 
 import { FieldDefinitionProp, FieldDefinition, normalizeFieldDefinition } from '../FieldDefinition';
 import {
+  AtomicValue,
   FieldValue,
   EmptyValue,
   CompositeValue,
@@ -52,6 +53,14 @@ import {
 } from './MultipleValuesInput';
 
 import { InputKind } from './InputCommpons';
+
+import DateObject from 'react-date-object';
+import * as GregorianCalendar from 'react-date-object/calendars/gregorian';
+import * as ArabicCalendar from 'react-date-object/calendars/arabic';
+import * as PersianCalendar from 'react-date-object/calendars/persian';
+import * as JalaliCalendar from 'react-date-object/calendars/jalali';
+import * as IndianCalendar from 'react-date-object/calendars/indian';
+
 
 export interface CompositeTimespanState {
   timespanType?: string;
@@ -96,17 +105,20 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       timespanType: undefined,
       timespanCalendar: undefined
     }
+    console.log("timespan constructor", props.for);
   }
 
   private getHandler(): CompositeTimespanHandler {
     const { handler } = this.props;
     if (!(handler instanceof CompositeTimespanHandler)) {
-      throw new Error('Invalid value handler for CompositeInput');
+      throw new Error('Invalid value handler for CompositeTimespanInput');
     }
+    console.log("timespan gethandler", handler);
     return handler;
   }
 
   componentDidMount() {
+    console.log("timespan did mount", this.props.for);
     this.tryLoadComposite(this.props);
   }
 
@@ -121,6 +133,22 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
 
   componentWillUnmount() {
     this.cancellation.cancelAll();
+  }
+
+  // get current value from Select field state
+  private getSelectValue(field: FieldState) {
+    return field?.values.first()?.label;
+  }
+
+  // forceUpdate all date picker components
+  private forceUpdateDateFields() {
+    this.inputRefs.forEach((refs, key) => {
+      if (key.startsWith('date_')) {
+        for (const ref of refs) {
+          ref?.forceUpdate();
+        }
+      }
+    });
   }
 
   private tryLoadComposite(props: ComponentProps) {
@@ -139,6 +167,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
   }
 
   private loadComposite(props: ComponentProps) {
+    console.log("timespan load composite", this.props.for);
     this.compositeOperations = this.cancellation.deriveAndCancel(this.compositeOperations);
     const handler = this.getHandler();
 
@@ -167,6 +196,15 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
           }
           this.compositeState = DataState.Ready;
           this.props.updateValue(() => loaded);
+          // read state from child select components
+          const typeField = loaded.fields.get('type');
+          const typeValue = this.getSelectValue(typeField);
+          const calendarField = loaded.fields.get('calendar');
+          const calendarValue = this.getSelectValue(calendarField);
+          const newState = {timespanType: typeValue, timespanCalendar: calendarValue};
+          console.log("timespan load setstate", this.props.for, newState);
+          this.setState(newState);
+          this.forceUpdateDateFields();
         },
       });
   }
@@ -184,6 +222,8 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       return;
     }
 
+    console.log("timespan setfieldvalue", this.props.for, def.id);
+
     const newValue = reduceFieldValue(def.id, oldValue, reducer);
     if (this.isInputLoading(def.id)) {
       this.inputStates.set(def.id, READY_INPUT_STATE);
@@ -191,28 +231,84 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       this.startValidatingField(def, oldValue, newValue);
     }
 
+    // change state based on child select components
     if (def.id === 'type') {
-      const field = newValue.fields.get('type')
-      const value = field.values.first();
-      const label = value.label;
+      const field = newValue.fields.get('type');
+      const label = this.getSelectValue(field);
       if (label !== this.state.timespanType) {
+        console.log("timespan setfieldvalue set", this.props.for, def.id, label);
         this.setState({timespanType: label});
-        const dateDateRefs = this.inputRefs.get('date_date');
-        if (dateDateRefs) {
-          for (const ref of dateDateRefs) {
-            ref.setState({mode: label});
+        this.forceUpdateDateFields();
+      }
+    } else if (def.id === 'calendar') {
+      const field = newValue.fields.get('calendar');
+      const label = this.getSelectValue(field);
+      if (label !== this.state.timespanCalendar) {
+        console.log("timespan setfieldvalue set", this.props.for, def.id, label);
+        this.setState({timespanCalendar: label});
+        this.forceUpdateDateFields();
+      }
+    } /* else if (def.id === 'date_from' && this.state.timespanType === 'year') {
+      const fromField = newValue.fields.get('date_from');
+      const fromValue = fromField.values.first()?.value?.value;
+      if (fromValue) {
+        const XSD_DATE_FORMAT = 'YYYY-MM-DD';
+        const fromDate = new DateObject({date: fromValue, format: XSD_DATE_FORMAT});
+        let firstDay = new DateObject(fromDate).toFirstOfYear().format(XSD_DATE_FORMAT);
+        let lastDay = new DateObject(fromDate).toLastOfYear().format(XSD_DATE_FORMAT);
+        switch (this.state.timespanCalendar) {
+          case 'islamic':
+            firstDay = new DateObject(fromDate).convert(ArabicCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            lastDay = new DateObject(fromDate).convert(ArabicCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            break;
+          case 'persian':
+            firstDay = new DateObject(fromDate).convert(PersianCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            lastDay = new DateObject(fromDate).convert(PersianCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            break;
+          case 'jalali':
+            firstDay = new DateObject(fromDate).convert(JalaliCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            lastDay = new DateObject(fromDate).convert(JalaliCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            break;
+          case 'indian':
+            firstDay = new DateObject(fromDate).convert(IndianCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            lastDay = new DateObject(fromDate).convert(IndianCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
+            break;
+        }
+        if (firstDay !== fromValue) {
+          console.log("not first of year?!");
+          //fromField.values.first().value.value = firstDay;
+        }
+        const untilField = newValue.fields.get('date_until');
+        const untilValue = untilField.values.first()?.value?.value;
+        const refs = this.inputRefs.get('date_until');
+        for (const ref of refs) {
+          if (ref) {
+            ref.props.updateValues((valuerrs) => {
+              const values = valuerrs.values.map((value: FieldValue) => {
+                if (FieldValue.isEmpty(value)) {
+                  return value;
+                } else {
+                  return value;
+                }});
+              return {
+                values: values,
+                errors: valuerrs.errors
+              };
+            });
           }
         }
+        /*
+        if (untilValue && lastDay !== untilValue) {
+          untilField.values.first().value.value = lastDay;
+          const refs = this.inputRefs.get('date_until');
+          for (const ref of refs) {
+            ref?.forceUpdate();
+          }
+        }
+        console.log("timespan setfieldvalue set", this.props.for, def.id);
       }
-    }
-    if (def.id === 'calendar') {
-      const field = newValue.fields.get('calendar')
-      const value = field.values.first();
-      const label = value.label;
-      if (label !== this.state.timespanCalendar) {
-        this.setState({timespanCalendar: label});        
-      }
-    }
+    } */
+
     return newValue;
   }
 
@@ -268,16 +364,20 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     for (const fieldId of fieldIds) {
       const refs = this.inputRefs.get(fieldId);
       if (!refs) {
+        //console.log("timespan datastate notref", fieldId);
         result = mergeDataState(result, DataState.Loading);
         continue;
       }
       for (const ref of refs) {
         if (ref) {
+          //console.log("timespan datastate before merge", result, ref.props.for, fieldId);
           result = mergeDataState(result, ref.dataState());
+          //console.log("timespan datastate after merge", result, ref.props.for);
         }
       }
     }
 
+    //console.log("timespan datastate result", result);
     return result;
   }
 
@@ -295,23 +395,56 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       return createElement(Spinner);
     }
     
-    const timespanType = this.state.timespanType;
-    const timespanCalendar = this.state.timespanCalendar;
+    console.log("timespan render", this.props.for, this.state.timespanType, this.state.timespanCalendar, Children.count(this.props.children));
 
-    const updatedChildren = Children.map(this.props.children, (child: ReactNode) => {
+    // update props of child components
+    let childComponents = this.props.children;
+    // default mode: day
+    let datePickerMode = 'day';
+    let datePickerDate = true;
+    let datePickerFrom = false;
+    let datePickerUntil = false;
+    if (this.state.timespanType === 'year') {
+      // mode: year
+      datePickerMode = 'year';
+      datePickerDate = false;
+      datePickerFrom = true;
+      datePickerUntil = true;
+    } else if (this.state.timespanType === 'range') {
+      // mode: range
+      datePickerDate = false;
+      datePickerFrom = true;
+      datePickerUntil = true;
+    }
+    const datePickerCalendar = this.state.timespanCalendar;
+    childComponents = Children.map(this.props.children, (child: ReactNode) => {
       const name = child.props.for;
       if (name.startsWith('date_')) {
-        return cloneElement(child, {
-          mode: timespanType,
-          calendar: timespanCalendar
-        });
+        if (!(this.state.timespanType && this.state.timespanCalendar)) {
+          // do not render date picker when state is undefined
+          return child;
+        }
+        if ((name === 'date_date' && datePickerDate)
+        || (name === 'date_from' && datePickerFrom)
+        || (name === 'date_until' && datePickerUntil)) {
+          // return clone with modified props
+          console.log("timespan render clone", this.props.for, name, datePickerMode, datePickerCalendar);
+          return cloneElement(child, {
+            mode: datePickerMode,
+            calendar: datePickerCalendar
+          });
+        } else {
+          // ignore unused date picker
+          return null;
+        }
       } else {
         return child;
       }
-    })
+    });
 
-    const children = renderFields(
-      updatedChildren,
+    // render child components
+    const childElements = renderFields(
+      childComponents,
       composite,
       this.getHandler().handlers,
       this.dataStateForField,
@@ -319,7 +452,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       this.onMountInput
     );
 
-    return createElement('div', { className: 'composite-input' }, children);
+    return createElement('div', { className: 'composite-input' }, childElements);
   }
 
   private onMountInput = (
@@ -348,6 +481,7 @@ class CompositeTimespanHandler implements SingleValueHandler {
   readonly handlers: Immutable.Map<string, ReadonlyArray<MultipleValuesHandler>>;
 
   constructor({ baseInputProps }: SingleValueHandlerProps<CompositeTimespanInputProps>) {
+    console.log("timespan handler constructor");
     this.newSubjectTemplate = baseInputProps.newSubjectTemplate;
     this.definitions = normalizeDefinitons(baseInputProps.fields);
     const { inputs, errors } = validateFieldConfiguration(this.definitions, baseInputProps.children);
@@ -369,6 +503,7 @@ class CompositeTimespanHandler implements SingleValueHandler {
     if (!FieldValue.isComposite(value)) {
       return value;
     }
+    console.log("timespan handler validate", value);
     return CompositeValue.set(value, {
       fields: value.fields
         .map((state, fieldId) => {
@@ -388,6 +523,8 @@ class CompositeTimespanHandler implements SingleValueHandler {
 
   finalize(value: FieldValue, owner: EmptyValue | CompositeValue): Kefir.Property<CompositeValue> {
     const finalizedComposite = this.finalizeSubject(value, owner);
+
+    console.log("timespan handler finalize", value);
 
     const fieldProps = finalizedComposite.fields
       .map((state, fieldId) => {
