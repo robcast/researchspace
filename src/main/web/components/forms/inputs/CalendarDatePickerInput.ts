@@ -196,6 +196,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
       // assume date object and convert to gregorian calendar and format
       const calendarDate = new DateObject(value);
       if (this.state.mode === 'year') {
+        // set day to first or last in year mode
         if (this.props.yearstart) {
           calendarDate.toFirstOfYear();
         } else if (this.props.yearend) {

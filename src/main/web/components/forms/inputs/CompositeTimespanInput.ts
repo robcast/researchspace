@@ -21,7 +21,7 @@ import * as Immutable from 'immutable';
 import * as Kefir from 'kefir';
 
 import { Cancellation } from 'platform/api/async';
-import { Rdf } from 'platform/api/rdf';
+import { Rdf, vocabularies } from 'platform/api/rdf';
 
 import { Spinner } from 'platform/components/ui/spinner';
 
@@ -60,7 +60,13 @@ import * as ArabicCalendar from 'react-date-object/calendars/arabic';
 import * as PersianCalendar from 'react-date-object/calendars/persian';
 import * as JalaliCalendar from 'react-date-object/calendars/jalali';
 import * as IndianCalendar from 'react-date-object/calendars/indian';
+import * as GregorianEnLocale from 'react-date-object/locales/gregorian_en';
+import * as ArabicEnLocale from 'react-date-object/locales/arabic_en';
+import * as PersianEnLocale from 'react-date-object/locales/persian_en';
+import * as IndianEnLocale from 'react-date-object/locales/indian_en';
 
+const XSD_DATE_FORMAT = 'YYYY-MM-DD';
+const DATE_LABEL_FORMAT = 'YYYY-MMM-D';
 
 export interface CompositeTimespanState {
   timespanType?: string;
@@ -149,6 +155,21 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         }
       }
     });
+  }
+  
+  private convertToCalendarDate(isoDate: string): DateObject {
+    switch (this.state.timespanCalendar) {
+      case 'gregorian':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
+      case 'islamic':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(ArabicCalendar, ArabicEnLocale);
+      case 'persian':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(PersianCalendar, PersianEnLocale);
+      case 'jalali':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(JalaliCalendar, PersianEnLocale);
+      case 'indian':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(IndianCalendar, IndianEnLocale);
+    }
   }
 
   private tryLoadComposite(props: ComponentProps) {
@@ -248,67 +269,41 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         this.setState({timespanCalendar: label});
         this.forceUpdateDateFields();
       }
-    } /* else if (def.id === 'date_from' && this.state.timespanType === 'year') {
-      const fromField = newValue.fields.get('date_from');
-      const fromValue = fromField.values.first()?.value?.value;
-      if (fromValue) {
-        const XSD_DATE_FORMAT = 'YYYY-MM-DD';
-        const fromDate = new DateObject({date: fromValue, format: XSD_DATE_FORMAT});
-        let firstDay = new DateObject(fromDate).toFirstOfYear().format(XSD_DATE_FORMAT);
-        let lastDay = new DateObject(fromDate).toLastOfYear().format(XSD_DATE_FORMAT);
-        switch (this.state.timespanCalendar) {
-          case 'islamic':
-            firstDay = new DateObject(fromDate).convert(ArabicCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            lastDay = new DateObject(fromDate).convert(ArabicCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            break;
-          case 'persian':
-            firstDay = new DateObject(fromDate).convert(PersianCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            lastDay = new DateObject(fromDate).convert(PersianCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            break;
-          case 'jalali':
-            firstDay = new DateObject(fromDate).convert(JalaliCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            lastDay = new DateObject(fromDate).convert(JalaliCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            break;
-          case 'indian':
-            firstDay = new DateObject(fromDate).convert(IndianCalendar).toFirstOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            lastDay = new DateObject(fromDate).convert(IndianCalendar).toLastOfYear().convert(GregorianCalendar).format(XSD_DATE_FORMAT);
-            break;
-        }
-        if (firstDay !== fromValue) {
-          console.log("not first of year?!");
-          //fromField.values.first().value.value = firstDay;
-        }
+    } else if (def.id.startsWith('date_')) {
+      // update label when date changes
+      let timespanLabel = '??';
+      if (this.state.timespanType === 'year' || this.state.timespanType === 'range') {
+        const fromField = newValue.fields.get('date_from');
+        const fromXsdDate = fromField?.values.first()?.value?.value;
         const untilField = newValue.fields.get('date_until');
-        const untilValue = untilField.values.first()?.value?.value;
-        const refs = this.inputRefs.get('date_until');
-        for (const ref of refs) {
-          if (ref) {
-            ref.props.updateValues((valuerrs) => {
-              const values = valuerrs.values.map((value: FieldValue) => {
-                if (FieldValue.isEmpty(value)) {
-                  return value;
-                } else {
-                  return value;
-                }});
-              return {
-                values: values,
-                errors: valuerrs.errors
-              };
-            });
+        const untilXsdDate = untilField?.values.first()?.value?.value;
+        if (fromXsdDate && untilXsdDate) {
+          const fromCalDate = this.convertToCalendarDate(fromXsdDate);
+          const untilCalDate = this.convertToCalendarDate(untilXsdDate);
+          if (this.state.timespanType === 'year') {
+            timespanLabel = fromCalDate.format('YYYY') + ' (' + this.state.timespanCalendar + ')';
+          } else if (this.state.timespanType === 'range') {
+            timespanLabel = fromCalDate.format(DATE_LABEL_FORMAT) + ' - ' + untilCalDate.format(DATE_LABEL_FORMAT)
+              + ' (' + this.state.timespanCalendar + ')';
           }
         }
-        /*
-        if (untilValue && lastDay !== untilValue) {
-          untilField.values.first().value.value = lastDay;
-          const refs = this.inputRefs.get('date_until');
-          for (const ref of refs) {
-            ref?.forceUpdate();
-          }
+      } else if (this.state.timespanType === 'day') {
+        const dayField = newValue.fields.get('date_date');
+        const dayXsdDate = dayField?.values.first()?.value?.value;
+        if (dayXsdDate) {
+          const dayCalDate = this.convertToCalendarDate(dayXsdDate);
+          timespanLabel = dayCalDate.format(DATE_LABEL_FORMAT)
+              + ' (' + this.state.timespanCalendar + ')';
         }
-        console.log("timespan setfieldvalue set", this.props.for, def.id);
       }
-    } */
-
+      console.log("date label", timespanLabel);
+      const labelRefs = this.inputRefs.get('label');
+      for (const ref of labelRefs) {
+        ref.inputs.forEach((input) => {
+          input[0].setState({text: timespanLabel});
+        });
+      }
+    }
     return newValue;
   }
 
