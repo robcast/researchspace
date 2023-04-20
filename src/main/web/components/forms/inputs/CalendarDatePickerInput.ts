@@ -46,7 +46,7 @@ import './calendardate.scss';
 // input format patterns include timezone offset to be compatible with XSD specification(?)
 export const INPUT_XSD_DATE_FORMAT = 'YYYY-MM-DD';
 // output format patterns for UTC moments (without timezone offset), compatible with ISO and XSD
-export const OUTPUT_DATE_FORMAT = 'YYYY-MM-DD';
+export const ISO_DATE_FORMAT = 'YYYY-MM-DD';
 
 export type DatePickerMode = 'day' | 'year';
 export type DatePickerCalendar = 'gregorian' | 'islamic' | 'persian' | 'jalali' | 'indian';
@@ -183,7 +183,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
     this.setState({ calendar : value });
   }
 
-  private onDateSelected = (value: string | DateObject) => {
+  onDateSelected = (value: string | DateObject) => {
     let parsed: AtomicValue | EmptyValue;
     if (!value) {
       parsed = EmptyValue;
@@ -193,7 +193,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
       // TODO: convert to gregorian? 
       parsed = this.parse(value);
     } else {
-      // assume date object and convert to gregorian calendar and format
+      // assume value is date object and convert to gregorian calendar
       const calendarDate = new DateObject(value);
       if (this.state.mode === 'year') {
         // set day to first or last in year mode
@@ -203,9 +203,8 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
           calendarDate.toLastOfYear();
         }
       }
-      const gregorianDate = calendarDate.convert(GregorianCalendar);
-      const formattedDate = gregorianDate.format(OUTPUT_DATE_FORMAT);
-      parsed = this.parse(formattedDate);
+      const isoDate = calendarDate.convert(GregorianCalendar).format(ISO_DATE_FORMAT);
+      parsed = this.parse(isoDate);
     }
     console.log("datepicker onDateSelected", this.props.for, parsed);
     this.setAndValidate(parsed);

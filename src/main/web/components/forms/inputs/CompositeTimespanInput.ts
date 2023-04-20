@@ -141,37 +141,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     this.cancellation.cancelAll();
   }
 
-  // get current value from Select field state
-  private getSelectValue(field: FieldState) {
-    return field?.values.first()?.label;
-  }
-
-  // forceUpdate all date picker components
-  private forceUpdateDateFields() {
-    this.inputRefs.forEach((refs, key) => {
-      if (key.startsWith('date_')) {
-        for (const ref of refs) {
-          ref?.forceUpdate();
-        }
-      }
-    });
-  }
-  
-  private convertToCalendarDate(isoDate: string): DateObject {
-    switch (this.state.timespanCalendar) {
-      case 'gregorian':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
-      case 'islamic':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(ArabicCalendar, ArabicEnLocale);
-      case 'persian':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(PersianCalendar, PersianEnLocale);
-      case 'jalali':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(JalaliCalendar, PersianEnLocale);
-      case 'indian':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(IndianCalendar, IndianEnLocale);
-    }
-  }
-
   private tryLoadComposite(props: ComponentProps) {
     if (!(this.shouldReload && props.dataState === DataState.Ready)) {
       return;
@@ -274,29 +243,32 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       let timespanLabel = '??';
       if (this.state.timespanType === 'year' || this.state.timespanType === 'range') {
         const fromField = newValue.fields.get('date_from');
-        const fromXsdDate = fromField?.values.first()?.value?.value;
+        const fromXsdDate = this.getCalendarDateValue(fromField);
         const untilField = newValue.fields.get('date_until');
-        const untilXsdDate = untilField?.values.first()?.value?.value;
+        const untilXsdDate = this.getCalendarDateValue(untilField);
         if (fromXsdDate && untilXsdDate) {
           const fromCalDate = this.convertToCalendarDate(fromXsdDate);
           const untilCalDate = this.convertToCalendarDate(untilXsdDate);
           if (this.state.timespanType === 'year') {
-            timespanLabel = fromCalDate.format('YYYY') + ' (' + this.state.timespanCalendar + ')';
+            timespanLabel = fromCalDate.format('YYYY') 
+              + ' (' + this.state.timespanCalendar + ')';
           } else if (this.state.timespanType === 'range') {
-            timespanLabel = fromCalDate.format(DATE_LABEL_FORMAT) + ' - ' + untilCalDate.format(DATE_LABEL_FORMAT)
+            timespanLabel = fromCalDate.format(DATE_LABEL_FORMAT) 
+              + ' - ' + untilCalDate.format(DATE_LABEL_FORMAT)
               + ' (' + this.state.timespanCalendar + ')';
           }
         }
       } else if (this.state.timespanType === 'day') {
-        const dayField = newValue.fields.get('date_date');
-        const dayXsdDate = dayField?.values.first()?.value?.value;
+        const dayField = newValue.fields.get('date_day');
+        const dayXsdDate = this.getCalendarDateValue(dayField);
         if (dayXsdDate) {
           const dayCalDate = this.convertToCalendarDate(dayXsdDate);
           timespanLabel = dayCalDate.format(DATE_LABEL_FORMAT)
               + ' (' + this.state.timespanCalendar + ')';
         }
       }
-      console.log("date label", timespanLabel);
+      console.log("timespan setfieldvalue set label", this.props.for, timespanLabel);
+      // set label text
       const labelRefs = this.inputRefs.get('label');
       for (const ref of labelRefs) {
         ref.inputs.forEach((input) => {
@@ -305,6 +277,42 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       }
     }
     return newValue;
+  }
+
+  // get current value from Select field state
+  private getSelectValue(field: FieldState) {
+    return field?.values.first()?.label;
+  }
+
+  // get current value from CalendarDatePicker field state
+  private getCalendarDateValue(field: FieldState) {
+    return field?.values.first()?.value?.value;
+  }
+
+  // forceUpdate all date picker components
+  private forceUpdateDateFields() {
+    this.inputRefs.forEach((refs, key) => {
+      if (key.startsWith('date_')) {
+        for (const ref of refs) {
+          ref?.forceUpdate();
+        }
+      }
+    });
+  }
+  
+  private convertToCalendarDate(isoDate: string): DateObject {
+    switch (this.state.timespanCalendar) {
+      case 'gregorian':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
+      case 'islamic':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(ArabicCalendar, ArabicEnLocale);
+      case 'persian':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(PersianCalendar, PersianEnLocale);
+      case 'jalali':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(JalaliCalendar, PersianEnLocale);
+      case 'indian':
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(IndianCalendar, IndianEnLocale);
+    }
   }
 
   private isInputLoading(fieldId: string): boolean {
@@ -359,20 +367,16 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     for (const fieldId of fieldIds) {
       const refs = this.inputRefs.get(fieldId);
       if (!refs) {
-        //console.log("timespan datastate notref", fieldId);
         result = mergeDataState(result, DataState.Loading);
         continue;
       }
       for (const ref of refs) {
         if (ref) {
-          //console.log("timespan datastate before merge", result, ref.props.for, fieldId);
           result = mergeDataState(result, ref.dataState());
-          //console.log("timespan datastate after merge", result, ref.props.for);
         }
       }
     }
 
-    //console.log("timespan datastate result", result);
     return result;
   }
 
@@ -396,18 +400,18 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     let childComponents = this.props.children;
     // default mode: day
     let datePickerMode = 'day';
-    let datePickerDate = true;
+    let datePickerDay = true;
     let datePickerFrom = false;
     let datePickerUntil = false;
     if (this.state.timespanType === 'year') {
       // mode: year
       datePickerMode = 'year';
-      datePickerDate = false;
+      datePickerDay = false;
       datePickerFrom = true;
       datePickerUntil = true;
     } else if (this.state.timespanType === 'range') {
       // mode: range
-      datePickerDate = false;
+      datePickerDay = false;
       datePickerFrom = true;
       datePickerUntil = true;
     }
@@ -419,7 +423,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
           // do not render date picker when state is undefined
           return child;
         }
-        if ((name === 'date_date' && datePickerDate)
+        if ((name === 'date_day' && datePickerDay)
         || (name === 'date_from' && datePickerFrom)
         || (name === 'date_until' && datePickerUntil)) {
           // return clone with modified props
@@ -478,7 +482,7 @@ class CompositeTimespanHandler implements SingleValueHandler {
   constructor({ baseInputProps }: SingleValueHandlerProps<CompositeTimespanInputProps>) {
     console.log("timespan handler constructor");
     this.newSubjectTemplate = baseInputProps.newSubjectTemplate;
-    this.definitions = normalizeDefinitons(baseInputProps.fields);
+    this.definitions = normalizeDefinitions(baseInputProps.fields);
     const { inputs, errors } = validateFieldConfiguration(this.definitions, baseInputProps.children);
     this.inputs = inputs;
     this.configurationErrors = errors;
@@ -552,7 +556,7 @@ class CompositeTimespanHandler implements SingleValueHandler {
   }
 }
 
-function normalizeDefinitons(rawFields: ReadonlyArray<FieldDefinitionProp>) {
+function normalizeDefinitions(rawFields: ReadonlyArray<FieldDefinitionProp>) {
   return Immutable.Map<string, FieldDefinition>().withMutations((result) => {
     for (const raw of rawFields) {
       if (result.has(raw.id)) {
