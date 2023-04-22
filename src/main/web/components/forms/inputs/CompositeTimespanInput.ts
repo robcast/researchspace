@@ -269,10 +269,18 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       }
       console.log("timespan setfieldvalue set label", this.props.for, timespanLabel);
       // set label text
+      const labelField = newValue.fields.get('label');
+      const labelValue = labelField.values.first()?.value;
+      if (labelValue) {
+        // patch label value
+        labelValue._value = timespanLabel;
+      }
+      // set visible label element
       const labelRefs = this.inputRefs.get('label');
       for (const ref of labelRefs) {
         ref.inputs.forEach((input) => {
-          input[0].setState({text: timespanLabel});
+          const textField = input[0];
+          textField.setState({text: timespanLabel});
         });
       }
     }
@@ -312,6 +320,9 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(JalaliCalendar, PersianEnLocale);
       case 'indian':
         return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(IndianCalendar, IndianEnLocale);
+      case 'julian':
+        // FIXME: get real julian calendar
+        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
     }
   }
 

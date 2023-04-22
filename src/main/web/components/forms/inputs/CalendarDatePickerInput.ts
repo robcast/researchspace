@@ -49,7 +49,7 @@ export const INPUT_XSD_DATE_FORMAT = 'YYYY-MM-DD';
 export const ISO_DATE_FORMAT = 'YYYY-MM-DD';
 
 export type DatePickerMode = 'day' | 'year';
-export type DatePickerCalendar = 'gregorian' | 'islamic' | 'persian' | 'jalali' | 'indian';
+export type DatePickerCalendar = 'gregorian' | 'islamic' | 'persian' | 'jalali' | 'indian' | 'julian';
 
 export interface CalendarDatePickerInputProps extends AtomicValueInputProps {
   mode?: DatePickerMode;
@@ -119,6 +119,11 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
         calendarObject = IndianCalendar;
         localeObject = IndianEnLocale;
         break;
+      case 'julian':
+        // FIXME: get real julian calendar
+        calendarObject = GregorianCalendar;
+        localeObject = GregorianEnLocale;
+        break;
     }
 
     const displayedDate = dateObject
@@ -161,6 +166,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
           D.option({value: 'persian'}, 'persian'),
           D.option({value: 'jalali'}, 'jalali'),
           D.option({value: 'indian'}, 'indian'),
+          D.option({value: 'julian'}, 'julian'),
         )
       ) : null,
 
@@ -213,6 +219,10 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   private parse(isoDate: string): AtomicValue | EmptyValue {
     if (isoDate.length === 0) {
       return FieldValue.empty;
+    }
+    if (isoDate.length < 10) {
+      // fix missing leading zeroes
+      isoDate = '0'.repeat(10 - isoDate.length) + isoDate;
     }
     return AtomicValue.set(this.props.value, {
       value: Rdf.literal(isoDate, this.datatype),
