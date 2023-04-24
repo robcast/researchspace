@@ -21,13 +21,12 @@ import * as Immutable from 'immutable';
 import * as Kefir from 'kefir';
 
 import { Cancellation } from 'platform/api/async';
-import { Rdf, vocabularies } from 'platform/api/rdf';
+import { Rdf } from 'platform/api/rdf';
 
 import { Spinner } from 'platform/components/ui/spinner';
 
 import { FieldDefinitionProp, FieldDefinition, normalizeFieldDefinition } from '../FieldDefinition';
 import {
-  AtomicValue,
   FieldValue,
   EmptyValue,
   CompositeValue,
@@ -112,7 +111,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       timespanType: undefined,
       timespanCalendar: undefined
     }
-    console.log("timespan constructor", props.for);
   }
 
   private getHandler(): CompositeTimespanHandler {
@@ -120,12 +118,10 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     if (!(handler instanceof CompositeTimespanHandler)) {
       throw new Error('Invalid value handler for CompositeTimespanInput');
     }
-    console.log("timespan gethandler", handler);
     return handler;
   }
 
   componentDidMount() {
-    console.log("timespan did mount", this.props.for);
     this.tryLoadComposite(this.props);
   }
 
@@ -158,7 +154,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
   }
 
   private loadComposite(props: ComponentProps) {
-    console.log("timespan load composite", this.props.for);
     this.compositeOperations = this.cancellation.deriveAndCancel(this.compositeOperations);
     const handler = this.getHandler();
 
@@ -193,7 +188,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
           const calendarField = loaded.fields.get('calendar');
           const calendarValue = getSelectValue(calendarField);
           const newState = {timespanType: typeValue, timespanCalendar: calendarValue};
-          console.log("timespan load setstate", this.props.for, newState);
           this.setState(newState);
           this.forceUpdateDateFields();
         },
@@ -213,8 +207,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       return;
     }
 
-    console.log("timespan setfieldvalue", this.props.for, def.id);
-
     const newValue = reduceFieldValue(def.id, oldValue, reducer);
     if (this.isInputLoading(def.id)) {
       this.inputStates.set(def.id, READY_INPUT_STATE);
@@ -227,7 +219,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       const field = newValue.fields.get('type');
       const value = getSelectValue(field);
       if (value !== this.state.timespanType) {
-        console.log("timespan setfieldvalue set", this.props.for, def.id, value);
         this.setState({timespanType: value});
         this.updateLabel(newValue, value, this.state.timespanCalendar);
         this.forceUpdateDateFields();
@@ -236,7 +227,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       const field = newValue.fields.get('calendar');
       const value = getSelectValue(field);
       if (value !== this.state.timespanCalendar) {
-        console.log("timespan setfieldvalue set", this.props.for, def.id, value);
         this.setState({timespanCalendar: value});
         this.updateLabel(newValue, this.state.timespanType, value);
         this.forceUpdateDateFields();
@@ -244,7 +234,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     } else if (def.id.startsWith('date_')) {
       this.updateLabel(newValue, this.state.timespanType, this.state.timespanCalendar);
     }
-    console.log("timespan setfieldvalue done", this.props.for, def.id);
     return newValue;
   }
 
@@ -277,7 +266,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
               + ' (' + calendar + ')';
         }
       }
-      console.log("timespan setfieldvalue set label", this.props.for, timespanLabel);
       // set label text
       const labelField = newValue.fields.get('label');
       const labelValue = labelField.values.first()?.value;
@@ -404,8 +392,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       return createElement(Spinner);
     }
     
-    console.log("timespan render", this.props.for, this.state.timespanType, this.state.timespanCalendar, Children.count(this.props.children));
-
     // update props of child components
     let childComponents = this.props.children;
     // default mode: day
@@ -437,7 +423,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         || (name === 'date_from' && datePickerFrom)
         || (name === 'date_until' && datePickerUntil)) {
           // return clone with modified props
-          console.log("timespan render clone", this.props.for, name, datePickerMode, datePickerCalendar);
           return cloneElement(child, {
             mode: datePickerMode,
             calendar: datePickerCalendar
@@ -490,7 +475,6 @@ class CompositeTimespanHandler implements SingleValueHandler {
   readonly handlers: Immutable.Map<string, ReadonlyArray<MultipleValuesHandler>>;
 
   constructor({ baseInputProps }: SingleValueHandlerProps<CompositeTimespanInputProps>) {
-    console.log("timespan handler constructor");
     this.newSubjectTemplate = baseInputProps.newSubjectTemplate;
     this.definitions = normalizeDefinitions(baseInputProps.fields);
     const { inputs, errors } = validateFieldConfiguration(this.definitions, baseInputProps.children);
@@ -512,7 +496,6 @@ class CompositeTimespanHandler implements SingleValueHandler {
     if (!FieldValue.isComposite(value)) {
       return value;
     }
-    console.log("timespan handler validate", value);
     // check that years are the same in year mode
     let yearError: string;
     const type = getSelectValue(value.fields.get('type'));
@@ -551,7 +534,6 @@ class CompositeTimespanHandler implements SingleValueHandler {
   finalize(value: FieldValue, owner: EmptyValue | CompositeValue): Kefir.Property<CompositeValue> {
     const finalizedComposite = this.finalizeSubject(value, owner);
 
-    console.log("timespan handler finalize", value);
     const type = getSelectValue(finalizedComposite.fields.get('type'));
 
     const fieldProps = finalizedComposite.fields
@@ -562,6 +544,7 @@ class CompositeTimespanHandler implements SingleValueHandler {
         } else if ((type === 'range' || type === 'year') && fieldId === 'date_day') {
           state = FieldState.empty;
         }
+        // run normal handlers
         const handlers = this.handlers.get(fieldId);
         if (!handlers || handlers.length === 0) {
           return Kefir.constant(state);

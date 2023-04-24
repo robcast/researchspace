@@ -72,7 +72,6 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
       mode: props.mode || 'day',
       calendar: props.calendar || 'gregorian',
     };
-    console.log("datepicker constructor", props.for, props.mode, props.calendar);
   }
 
   private get datatype() {
@@ -139,8 +138,6 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
         ? defaultPlaceholder(this.props.definition, mode)
         : this.props.placeholder;
 
-    console.log("datepicker render", this.props.for, mode, calendar);
-
     return D.div(
       { className: 'date-picker-field' + this.props.calendarselector ? ' with-selector' : '' },
 
@@ -175,7 +172,6 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
   }
 
   componentDidUpdate(prevProps) {
-    console.log("datepicker didUpdate", this.props.for);
     if (prevProps.mode !== this.props.mode) {
       this.setState({mode: this.props.mode});
     }
@@ -212,7 +208,6 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
       const isoDate = calendarDate.convert(GregorianCalendar).format(ISO_DATE_FORMAT);
       parsed = this.parse(isoDate);
     }
-    console.log("datepicker onDateSelected", this.props.for, parsed);
     this.setAndValidate(parsed);
   };
 
