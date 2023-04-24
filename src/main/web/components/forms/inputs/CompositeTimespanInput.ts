@@ -278,7 +278,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       for (const ref of labelRefs) {
         ref.inputs.forEach((input) => {
           const textField = input[0];
-          textField.setState({text: timespanLabel});
+          textField?.setState({text: timespanLabel});
         });
       }
   }
