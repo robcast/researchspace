@@ -246,8 +246,8 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         const untilField = newValue.fields.get('date_until');
         const untilXsdDate = getDatePickerValue(untilField);
         if (fromXsdDate && untilXsdDate) {
-          const fromCalDate = this.convertToCalendarDate(fromXsdDate, calendar);
-          const untilCalDate = this.convertToCalendarDate(untilXsdDate, calendar);
+          const fromCalDate = convertToCalendarDate(fromXsdDate, calendar);
+          const untilCalDate = convertToCalendarDate(untilXsdDate, calendar);
           if (type === 'year') {
             timespanLabel = fromCalDate.format('YYYY') 
               + ' (' + calendar + ')';
@@ -261,7 +261,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         const dayField = newValue.fields.get('date_day');
         const dayXsdDate = getDatePickerValue(dayField);
         if (dayXsdDate) {
-          const dayCalDate = this.convertToCalendarDate(dayXsdDate, calendar);
+          const dayCalDate = convertToCalendarDate(dayXsdDate, calendar);
           timespanLabel = dayCalDate.format(DATE_LABEL_FORMAT)
               + ' (' + calendar + ')';
         }
@@ -294,25 +294,6 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     });
   }
   
-  // convert isoDate to DateObject in current calendar
-  private convertToCalendarDate(isoDate: string, calendar: string): DateObject {
-    switch (calendar) {
-      case 'gregorian':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
-      case 'islamic':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(ArabicCalendar, ArabicEnLocale);
-      case 'persian':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(PersianCalendar, PersianEnLocale);
-      case 'jalali':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(JalaliCalendar, PersianEnLocale);
-      case 'indian':
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(IndianCalendar, IndianEnLocale);
-      case 'julian':
-        // FIXME: get real julian calendar
-        return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
-    }
-  }
-
   private isInputLoading(fieldId: string): boolean {
     const refs = this.inputRefs.get(fieldId);
     if (!refs) {
@@ -500,10 +481,13 @@ class CompositeTimespanHandler implements SingleValueHandler {
     let yearError: string;
     const type = getSelectValue(value.fields.get('type'));
     if (type === 'year') {
-      const fromDate = getDatePickerValue(value.fields.get('date_from'));
-      const untilDate = getDatePickerValue(value.fields.get('date_until'));
+      const calendar = getSelectValue(value.fields.get('calendar'));
+      const fromIsoDate = getDatePickerValue(value.fields.get('date_from'));
+      const fromDate = convertToCalendarDate(fromIsoDate, calendar);
+      const untilIsoDate = getDatePickerValue(value.fields.get('date_until'));
+      const untilDate = convertToCalendarDate(untilIsoDate, calendar);
       // compare years
-      if (fromDate?.substring(0,4) !== untilDate?.substring(0,4)) {
+      if (fromDate?.year !== untilDate?.year) {
         yearError = "Start and end year must be the same in 'year' mode!";
       }
     }
@@ -538,7 +522,7 @@ class CompositeTimespanHandler implements SingleValueHandler {
 
     const fieldProps = finalizedComposite.fields
       .map((state, fieldId) => {
-        // remove values of invalid date-type combinations
+        // remove values of invalid date-type field combinations
         if (type === 'day' && (fieldId === 'date_from' || fieldId === 'date_until')) {
           state = FieldState.empty;
         } else if ((type === 'range' || type === 'year') && fieldId === 'date_day') {
@@ -672,6 +656,26 @@ function getSelectValue(field: FieldState) {
 // get current value (xsd:Date) from CalendarDatePicker field state
 function getDatePickerValue(field: FieldState) {
   return field?.values.first()?.value?.value;
+}
+
+// convert isoDate to DateObject in current calendar
+function convertToCalendarDate(isoDate: string, calendar: string): DateObject {
+  if (!isoDate) return undefined;
+  switch (calendar) {
+    case 'gregorian':
+      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
+    case 'islamic':
+      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(ArabicCalendar, ArabicEnLocale);
+    case 'persian':
+      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(PersianCalendar, PersianEnLocale);
+    case 'jalali':
+      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(JalaliCalendar, PersianEnLocale);
+    case 'indian':
+      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(IndianCalendar, IndianEnLocale);
+    case 'julian':
+      // FIXME: get real julian calendar
+      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
+  }
 }
 
 
