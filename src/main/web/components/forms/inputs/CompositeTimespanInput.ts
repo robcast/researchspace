@@ -66,7 +66,7 @@ import * as PersianEnLocale from 'react-date-object/locales/persian_en';
 import * as IndianEnLocale from 'react-date-object/locales/indian_en';
 
 const XSD_DATE_FORMAT = 'YYYY-MM-DD';
-const DATE_LABEL_FORMAT = 'YYYY-M<M-D';
+const DATE_LABEL_FORMAT = 'YYYY-M-D';
 
 export interface CompositeTimespanState {
   timespanType?: string;
