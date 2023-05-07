@@ -66,7 +66,7 @@ import * as PersianEnLocale from 'react-date-object/locales/persian_en';
 import * as IndianEnLocale from 'react-date-object/locales/indian_en';
 
 const XSD_DATE_FORMAT = 'YYYY-MM-DD';
-const DATE_LABEL_FORMAT = 'YYYY-MMM-D';
+const DATE_LABEL_FORMAT = 'YYYY-M<M-D';
 
 export interface CompositeTimespanState {
   timespanType?: string;
@@ -77,6 +77,7 @@ export interface CompositeTimespanInputProps extends SingleValueInputProps {
   fields: ReadonlyArray<FieldDefinitionProp>;
   newSubjectTemplate?: string;
   children?: ReactNode;
+  dateLabelFormat?: string;
 }
 
 type ComponentProps = CompositeTimespanInputProps & Props<CompositeTimespanInput>;
@@ -240,6 +241,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
   // update label field from date fields
   private updateLabel(newValue: CompositeValue, type: string, calendar: string) {
       let timespanLabel = '??';
+      const dateLabelFormat = this.props.dateLabelFormat || DATE_LABEL_FORMAT;
       if (type === 'year' || type === 'range') {
         const fromField = newValue.fields.get('date_from');
         const fromXsdDate = getDatePickerValue(fromField);
@@ -252,8 +254,8 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
             timespanLabel = fromCalDate.format('YYYY') 
               + ' (' + calendar + ')';
           } else if (type === 'range') {
-            timespanLabel = fromCalDate.format(DATE_LABEL_FORMAT) 
-              + ' - ' + untilCalDate.format(DATE_LABEL_FORMAT)
+            timespanLabel = fromCalDate.format(dateLabelFormat) 
+              + ' - ' + untilCalDate.format(dateLabelFormat)
               + ' (' + calendar + ')';
           }
         }
@@ -262,7 +264,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         const dayXsdDate = getDatePickerValue(dayField);
         if (dayXsdDate) {
           const dayCalDate = convertToCalendarDate(dayXsdDate, calendar);
-          timespanLabel = dayCalDate.format(DATE_LABEL_FORMAT)
+          timespanLabel = dayCalDate.format(dateLabelFormat)
               + ' (' + calendar + ')';
         }
       }
