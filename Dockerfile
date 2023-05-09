@@ -16,7 +16,6 @@ RUN npm install
 # volume for node artefacts
 VOLUME ["/workdir/node_modules"]
 
-EXPOSE 3000 10214
+EXPOSE 3000 10214 5005
 
-#CMD ["tail", "-f", "/dev/null"]
 CMD ["/workdir/gradlew", "appStart"]

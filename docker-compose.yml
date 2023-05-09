@@ -6,6 +6,8 @@ services:
     ports:
       - "3000:3000"
       - "10214:10214"
+      # Java debugger
+      - "5005:5005"
     volumes:
       - .:/workdir
       - node_modules:/workdir/node_modules
