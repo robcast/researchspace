@@ -19,6 +19,8 @@
 
 package org.researchspace.rest.endpoint;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -70,6 +72,7 @@ public class FormPersistenceLdpEndpoint {
     private HttpServletRequest servletRequest;
 
     private static final Logger logger = LogManager.getLogger(FormPersistenceLdpEndpoint.class);
+    private static final Logger dataAuditLog = LogManager.getLogger("org.researchspace.ldp.dataaudit");
 
     @Inject
     private RepositoryManager repositoryManager;
@@ -177,6 +180,11 @@ public class FormPersistenceLdpEndpoint {
                 }
 
                 formContainer.update(pg);
+                
+                dataAuditLog.info("UPDATE LDP CONTAINER {} BY USER {}", pg.getPointer(), servletRequest.getUserPrincipal());
+                if (dataAuditLog.isTraceEnabled()) {
+                    dataAuditLog.trace("UPDATE LDP CONTAINER {} DATA {}", pg.getPointer(), encodeForLog(pg.getGraph()));
+                }
 
                 if (logger.isTraceEnabled()) {
                     stopwatch.stop();
@@ -196,6 +204,11 @@ public class FormPersistenceLdpEndpoint {
                 }
 
                 formContainer.add(pg);
+
+                dataAuditLog.info("ADD LDP CONTAINER {} BY USER {}", pg.getPointer(), servletRequest.getUserPrincipal());
+                if (dataAuditLog.isTraceEnabled()) {
+                    dataAuditLog.trace("ADD LDP CONTAINER {} DATA {}", pg.getPointer(), encodeForLog(pg.getGraph()));
+                }
 
                 if (logger.isTraceEnabled()) {
                     stopwatch.stop();
@@ -260,6 +273,8 @@ public class FormPersistenceLdpEndpoint {
             LDPApiInternal ldpApi = ldpCache.api(repositoryID);
             ldpApi.deleteLDPResource(formContainerIri);
 
+            dataAuditLog.info("DELETE LDP CONTAINER {} BY USER {}", formContainerIri, servletRequest.getUserPrincipal());
+
             if (logger.isTraceEnabled()) {
                 stopwatch.stop();
                 logger.trace("It took {} to delete entity from form container", stopwatch);
@@ -271,5 +286,12 @@ public class FormPersistenceLdpEndpoint {
             logger.debug("Details: {} ", e);
             return Response.serverError().entity(e.getMessage()).build();
         }
+    }
+    
+    private static String encodeForLog(Model model) {
+        String str = model.toString(); // TODO: better string representation?
+        byte[] src = str.getBytes(StandardCharsets.UTF_8);
+        String out = Base64.getEncoder().encodeToString(src);
+        return out;
     }
 }
