@@ -25,6 +25,7 @@ import * as D from 'react-dom-factories';
 import DatePicker from 'react-multi-date-picker';
 import DateObject from 'react-date-object';
 import * as GregorianCalendar from 'react-date-object/calendars/gregorian';
+import * as JulianCalendar from 'date-object/calendars/cjs/julian';
 import * as ArabicCalendar from 'react-date-object/calendars/arabic';
 import * as PersianCalendar from 'react-date-object/calendars/persian';
 import * as JalaliCalendar from 'react-date-object/calendars/jalali';
@@ -119,8 +120,7 @@ export class CalendarDatePickerInput extends AtomicValueInput<CalendarDatePicker
         localeObject = IndianEnLocale;
         break;
       case 'julian':
-        // FIXME: get real julian calendar
-        calendarObject = GregorianCalendar;
+        calendarObject = JulianCalendar;
         localeObject = GregorianEnLocale;
         break;
     }

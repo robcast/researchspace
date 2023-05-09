@@ -56,6 +56,7 @@ import { InputKind } from './InputCommpons';
 
 import DateObject from 'react-date-object';
 import * as GregorianCalendar from 'react-date-object/calendars/gregorian';
+import * as JulianCalendar from 'date-object/calendars/cjs/julian';
 import * as ArabicCalendar from 'react-date-object/calendars/arabic';
 import * as PersianCalendar from 'react-date-object/calendars/persian';
 import * as JalaliCalendar from 'react-date-object/calendars/jalali';
@@ -675,8 +676,7 @@ function convertToCalendarDate(isoDate: string, calendar: string): DateObject {
     case 'indian':
       return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(IndianCalendar, IndianEnLocale);
     case 'julian':
-      // FIXME: get real julian calendar
-      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(GregorianCalendar, GregorianEnLocale);
+      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(JulianCalendar, GregorianEnLocale);
   }
 }
 
