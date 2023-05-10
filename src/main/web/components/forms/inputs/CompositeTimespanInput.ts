@@ -70,7 +70,7 @@ const XSD_DATE_FORMAT = 'YYYY-MM-DD';
 const DATE_LABEL_FORMAT = 'YYYY-M-D';
 
 export interface CompositeTimespanState {
-  timespanType?: string;
+  timespanType?: 'day' | 'year' | 'range' | 'unspecified';
   timespanCalendar?: string;
 }
 
@@ -241,49 +241,50 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
 
   // update label field from date fields
   private updateLabel(newValue: CompositeValue, type: string, calendar: string) {
-      let timespanLabel = '??';
-      const dateLabelFormat = this.props.dateLabelFormat || DATE_LABEL_FORMAT;
-      if (type === 'year' || type === 'range') {
-        const fromField = newValue.fields.get('date_from');
-        const fromXsdDate = getDatePickerValue(fromField);
-        const untilField = newValue.fields.get('date_until');
-        const untilXsdDate = getDatePickerValue(untilField);
-        if (fromXsdDate && untilXsdDate) {
-          const fromCalDate = convertToCalendarDate(fromXsdDate, calendar);
-          const untilCalDate = convertToCalendarDate(untilXsdDate, calendar);
-          if (type === 'year') {
-            timespanLabel = fromCalDate.format('YYYY') 
-              + ' (' + calendar + ')';
-          } else if (type === 'range') {
-            timespanLabel = fromCalDate.format(dateLabelFormat) 
-              + ' - ' + untilCalDate.format(dateLabelFormat)
-              + ' (' + calendar + ')';
-          }
-        }
-      } else if (type === 'day') {
-        const dayField = newValue.fields.get('date_day');
-        const dayXsdDate = getDatePickerValue(dayField);
-        if (dayXsdDate) {
-          const dayCalDate = convertToCalendarDate(dayXsdDate, calendar);
-          timespanLabel = dayCalDate.format(dateLabelFormat)
-              + ' (' + calendar + ')';
+    if (type === 'unspecified') return; 
+    let timespanLabel = '??';
+    const dateLabelFormat = this.props.dateLabelFormat || DATE_LABEL_FORMAT;
+    if (type === 'year' || type === 'range') {
+      const fromField = newValue.fields.get('date_from');
+      const fromXsdDate = getDatePickerValue(fromField);
+      const untilField = newValue.fields.get('date_until');
+      const untilXsdDate = getDatePickerValue(untilField);
+      if (fromXsdDate && untilXsdDate) {
+        const fromCalDate = convertToCalendarDate(fromXsdDate, calendar);
+        const untilCalDate = convertToCalendarDate(untilXsdDate, calendar);
+        if (type === 'year') {
+          timespanLabel = fromCalDate.format('YYYY') 
+            + ' (' + calendar + ')';
+        } else if (type === 'range') {
+          timespanLabel = fromCalDate.format(dateLabelFormat) 
+            + ' - ' + untilCalDate.format(dateLabelFormat)
+            + ' (' + calendar + ')';
         }
       }
-      // set label text
-      const labelField = newValue.fields.get('label');
-      const labelValue = labelField.values.first()?.value;
-      if (labelValue) {
-        // patch label value
-        labelValue._value = timespanLabel;
+    } else if (type === 'day') {
+      const dayField = newValue.fields.get('date_day');
+      const dayXsdDate = getDatePickerValue(dayField);
+      if (dayXsdDate) {
+        const dayCalDate = convertToCalendarDate(dayXsdDate, calendar);
+        timespanLabel = dayCalDate.format(dateLabelFormat)
+            + ' (' + calendar + ')';
       }
-      // set visible label element
-      const labelRefs = this.inputRefs.get('label');
-      for (const ref of labelRefs) {
-        ref.inputs.forEach((input) => {
-          const textField = input[0];
-          textField?.setState({text: timespanLabel});
-        });
-      }
+    }
+    // set label text
+    const labelField = newValue.fields.get('label');
+    const labelValue = labelField.values.first()?.value;
+    if (labelValue) {
+      // patch label value
+      labelValue._value = timespanLabel;
+    }
+    // set visible label element
+    const labelRefs = this.inputRefs.get('label');
+    for (const ref of labelRefs) {
+      ref.inputs.forEach((input) => {
+        const textField = input[0];
+        textField?.setState({text: timespanLabel});
+      });
+    }
   }
 
   // forceUpdate all date picker components
@@ -383,17 +384,25 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     let datePickerDay = true;
     let datePickerFrom = false;
     let datePickerUntil = false;
-    if (this.state.timespanType === 'year') {
-      // mode: year
-      datePickerMode = 'year';
-      datePickerDay = false;
-      datePickerFrom = true;
-      datePickerUntil = true;
-    } else if (this.state.timespanType === 'range') {
-      // mode: range
-      datePickerDay = false;
-      datePickerFrom = true;
-      datePickerUntil = true;
+    let calendarSelect = true;
+    switch (this.state.timespanType) {
+      case 'year':
+        datePickerMode = 'year';
+        datePickerDay = false;
+        datePickerFrom = true;
+        datePickerUntil = true;
+        break;
+      case 'range':
+        datePickerDay = false;
+        datePickerFrom = true;
+        datePickerUntil = true;
+        break;
+      case 'unspecified':
+        datePickerDay = false;
+        datePickerFrom = false;
+        datePickerUntil = false;
+        calendarSelect = false;
+        break;
     }
     const datePickerCalendar = this.state.timespanCalendar;
     childComponents = Children.map(this.props.children, (child: ReactNode) => {
@@ -412,8 +421,15 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
             calendar: datePickerCalendar
           });
         } else {
-          // ignore unused date picker
+          // omit unused date picker
           return null;
+        }
+      } else if (name === 'calendar') {
+        if (this.state.timespanType && !calendarSelect) {
+          // omit unused calendar select
+          return null;
+        } else {
+          return child;
         }
       } else {
         return child;
@@ -526,7 +542,9 @@ class CompositeTimespanHandler implements SingleValueHandler {
     const fieldProps = finalizedComposite.fields
       .map((state, fieldId) => {
         // remove values of invalid date-type field combinations
-        if (type === 'day' && (fieldId === 'date_from' || fieldId === 'date_until')) {
+        if (type === 'unspecified' && (fieldId.startsWith('date_') || fieldId === 'calendar')) {
+          state = FieldState.empty;
+        } else if (type === 'day' && (fieldId === 'date_from' || fieldId === 'date_until')) {
           state = FieldState.empty;
         } else if ((type === 'range' || type === 'year') && fieldId === 'date_day') {
           state = FieldState.empty;
