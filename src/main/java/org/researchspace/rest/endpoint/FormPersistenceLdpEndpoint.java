@@ -40,6 +40,7 @@ import org.apache.shiro.authz.annotation.RequiresAuthentication;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.eclipse.rdf4j.model.IRI;
 import org.eclipse.rdf4j.model.Model;
+import org.eclipse.rdf4j.model.Statement;
 import org.eclipse.rdf4j.model.ValueFactory;
 import org.eclipse.rdf4j.model.impl.LinkedHashModel;
 import org.eclipse.rdf4j.model.impl.SimpleValueFactory;
@@ -47,6 +48,7 @@ import org.eclipse.rdf4j.query.GraphQuery;
 import org.eclipse.rdf4j.query.GraphQueryResult;
 import org.eclipse.rdf4j.query.QueryResults;
 import org.eclipse.rdf4j.repository.RepositoryConnection;
+import org.eclipse.rdf4j.rio.helpers.NTriplesUtil;
 import org.researchspace.api.sparql.SparqlOperationBuilder;
 import org.researchspace.cache.CacheManager;
 import org.researchspace.config.NamespaceRegistry;
@@ -288,9 +290,21 @@ public class FormPersistenceLdpEndpoint {
         }
     }
     
+    /**
+     * Encodes Statements in model as base64 encoded NTriples string.
+     *  
+     * @param model
+     * @return
+     */
     private static String encodeForLog(Model model) {
-        String str = model.toString(); // TODO: better string representation?
-        byte[] src = str.getBytes(StandardCharsets.UTF_8);
+        StringBuffer sb = new StringBuffer();
+        for (Statement st : model) {
+            sb.append(String.format("%s %s %s .\n", 
+                    NTriplesUtil.toNTriplesString(st.getSubject()),
+                    NTriplesUtil.toNTriplesString(st.getPredicate()),
+                    NTriplesUtil.toNTriplesString(st.getObject())));
+        }
+        byte[] src = sb.toString().getBytes(StandardCharsets.UTF_8);
         String out = Base64.getEncoder().encodeToString(src);
         return out;
     }
