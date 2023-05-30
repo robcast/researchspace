@@ -1,5 +1,6 @@
 /**
  * ResearchSpace
+ * Copyright (C) 2023, MPIWG
  * Copyright (C) 2020, © Trustees of the British Museum
  * Copyright (C) 2015-2019, metaphacts GmbH
  *
@@ -26,6 +27,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.eclipse.rdf4j.model.Value;
+import org.eclipse.rdf4j.model.util.Values;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.MalformedQueryException;
 import org.eclipse.rdf4j.query.Operation;
@@ -41,8 +43,17 @@ import org.researchspace.templates.TemplateContext;
 import com.github.jknack.handlebars.Options;
 
 /**
+ * Template helper that increments the value of the given IRI in the repository
+ * and returns the resulting value.
  * 
- * @author Johannes Trame <jt@metaphacts.com>, Robert Casties <casties@mpiwg-berlin.mpg.de>
+ * The optional parameter "initial" (default 1000000) is used as a starting value 
+ * if none exists.
+ * 
+ * <code>
+ * [[autoincrementValue "myns:mycounter"]]
+ * </code><br>
+ * 
+ * @author Robert Casties <casties@mpiwg-berlin.mpg.de>, Johannes Trame <jt@metaphacts.com>
  *
  */
 public class AutoincrementValueSource {
@@ -52,22 +63,37 @@ public class AutoincrementValueSource {
     public String autoincrementValue(String param0, Options options) throws IOException {
         TemplateContext context = (TemplateContext) options.context.model();
         String idString = checkNotNull(param0, "Autoincrement identifier must not be null.");
-        String initialValue = options.hash("initial", "1000000");
-        String updateString = String.format("INSERT { %s rdfs:label ?new . }\n"
+        Value idValue;
+        String[] idParts = idString.split(":", 2);
+        if (idParts[0].startsWith("http")) {
+            // full URI
+            idValue = Values.iri(idString);
+        } else {
+            // try as namespace prefix
+            String pref = context.getNamespaceRegistry()
+                .flatMap(ns -> ns.getNamespace(idParts[0]))
+                .orElse(idParts[0]); 
+            idValue = Values.iri(pref, idParts[1]);
+        }
+        Value initialValue = Values.literal(Integer.parseInt(options.hash("initial", "1000000")));
+        String updateString = "DELETE { ?id rdfs:label ?last . }\n"
+                + "INSERT { ?id rdfs:label ?new . }\n"
                 + "WHERE {{\n"
                 + "  SELECT (max(?last_or_new) as ?last) WHERE {\n"
-                + "    OPTIONAL { %s rdfs:label ?db_last . }\n"
-                + "    bind(if(bound(?db_last), ?db_last, \"%s\"^^xsd:integer) as ?last_or_new)\n"
+                + "    OPTIONAL { ?id rdfs:label ?db_last . }\n"
+                + "    bind(if(bound(?db_last), ?db_last, ?initial) as ?last_or_new)\n"
                 + "  }}\n"
                 + "  bind(?last + 1 as ?new)\n"
-                + "}", idString, idString, initialValue);
-        String queryString = String.format("SELECT (max(?cnt) as ?last) WHERE { %s rdfs:label ?cnt . }", idString);
+                + "}";
+        String queryString = "SELECT (max(?cnt) as ?last) WHERE { ?id rdfs:label ?cnt . }";
 
         try (RepositoryConnection con = context.getRepository().getConnection()) {
             SparqlOperationBuilder<Operation> uob = HelperUtil
                     .contextualizeSparqlOperation(SparqlOperationBuilder.create(updateString), context);
             context.getNamespaceRegistry().map(ns -> uob.setNamespaces(ns.getPrefixMap()));
             SPARQLUpdate uop = (SPARQLUpdate) uob.build(con);
+            uop.setBinding("id", idValue);
+            uop.setBinding("initial", initialValue);
             logger.trace("Evaluating SPARQL UPDATE in {} Template Helper: {}", options.helperName, updateString);
             uop.execute();
             
@@ -75,13 +101,11 @@ public class AutoincrementValueSource {
                     .contextualizeSparqlOperation(SparqlOperationBuilder.create(queryString), context);
             context.getNamespaceRegistry().map(ns -> qob.setNamespaces(ns.getPrefixMap()));
             Operation qop = qob.build(con);
+            qop.setBinding("id", idValue);
             logger.trace("Evaluating SPARQL SELECT in {} Template Helper: {}", options.helperName, queryString);
             try (TupleQueryResult tqr = ((TupleQuery) qop).evaluate();) {
                 // workaround, we need to iterate over the result entirely otherwise sesame will
                 // throw exception
-                // info.aduna.io.UncloseableInputStream.doClose(UncloseableInputStream.java:45)
-                // at
-                // org.eclipse.rdf4j.query.resultio.sparqlxml.AbstractSPARQLXMLParser.parseQueryResultInternal(AbstractSPARQLXMLParser.java:155)
                 String stringValue = null;
                 while (tqr.hasNext()) {
                     BindingSet b = tqr.next();
