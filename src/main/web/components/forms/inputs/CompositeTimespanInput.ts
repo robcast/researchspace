@@ -29,6 +29,7 @@ import { FieldDefinitionProp, FieldDefinition, normalizeFieldDefinition } from '
 import {
   FieldValue,
   EmptyValue,
+  AtomicValue,
   CompositeValue,
   FieldError,
   FieldState,
@@ -209,7 +210,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       return;
     }
 
-    const newValue = reduceFieldValue(def.id, oldValue, reducer);
+    let newValue = reduceFieldValue(def.id, oldValue, reducer);
     if (this.isInputLoading(def.id)) {
       this.inputStates.set(def.id, READY_INPUT_STATE);
     } else {
@@ -234,13 +235,13 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
         this.forceUpdateDateFields();
       }
     } else if (def.id.startsWith('date_')) {
-      this.updateLabel(newValue, this.state.timespanType, this.state.timespanCalendar);
+      newValue = this.updateLabel(newValue, this.state.timespanType, this.state.timespanCalendar);
     }
     return newValue;
   }
 
   // update label field from date fields
-  private updateLabel(newValue: CompositeValue, type: string, calendar: string) {
+  private updateLabel(newValue: CompositeValue, type: string, calendar: string): CompositeValue {
     if (type === 'unspecified') return; 
     let timespanLabel = '??';
     const dateLabelFormat = this.props.dateLabelFormat || DATE_LABEL_FORMAT;
@@ -270,21 +271,21 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
             + ' (' + calendar + ')';
       }
     }
-    // set label text
-    const labelField = newValue.fields.get('label');
-    const labelValue = labelField.values.first()?.value;
-    if (labelValue) {
-      // patch label value
-      labelValue._value = timespanLabel;
-    }
+    // set label field value
+    let labelState = newValue.fields.get('label') as FieldState;
+    let labelValue = labelState.values.get(0) as AtomicValue;
+    labelValue = AtomicValue.set(labelValue, {value: Rdf.literal(timespanLabel)});
+    labelState = FieldState.set(labelState, {values: labelState.values.set(0, labelValue)});
+    newValue = CompositeValue.set(newValue, {fields: newValue.fields.set('label', labelState)})
     // set visible label element
-    const labelRefs = this.inputRefs.get('label');
+    const labelRefs = this.inputRefs.get('label') as ChildInput[];
     for (const ref of labelRefs) {
       ref.inputs.forEach((input) => {
         const textField = input[0];
         textField?.setState({text: timespanLabel});
       });
     }
+    return newValue;
   }
 
   // forceUpdate all date picker components
