@@ -42,7 +42,8 @@ export class LdpService {
   protected readonly context: LdpServiceContext;
 
   constructor(container: string, context?: LdpServiceContext) {
-    if (!context || context.isDefault) {
+    if (!context) {
+      // TODO: good reason to do this for context.isDefault?
       this.context = { repository: 'assets' };
     } else {
       this.context = context;
