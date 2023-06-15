@@ -97,6 +97,42 @@ const VALIDATION_DEBOUNCE_DELAY = 500;
 
 type ChildInput = MultipleValuesInput<MultipleValuesProps, unknown>;
 
+/**
+ * Form component to select a complex timespan date with calendar and type.
+ * 
+ * Optional properties:
+ * - date-label-format: format string for date label (defined by react-date-object)
+ * 
+ * Required child elements:
+ * - semantic-form-select-input for 'type' with values 'day', 'year', 'range', 'unspecified'
+ * - semantic-form-select-input for 'calendar' with values 'gregorian', 'islamic', 'persian', 'jalali', 'indian', 'julian'
+ * - semantic-form-calendardate-input for 'date_day'
+ * - semantic-form-calendardate-input for 'date_from'
+ * - semantic-form-calendardate-input for 'date_until'
+ * - semantic-form-text-input for 'label'
+ *
+ * @example
+ * <semantic-form-composite-timespan-input for="date"
+ *     new-subject-template="/date"
+ *     date-label-format="YYYY MMMM D"
+ *     fields="[[fieldDefinitions
+ *     label='http://templates.mpiwg-berlin.mpg.de/ismi/fieldDefinition/date_label'
+ *     type='http://templates.mpiwg-berlin.mpg.de/ismi/fieldDefinition/date_type'
+ *     calendar='http://templates.mpiwg-berlin.mpg.de/ismi/fieldDefinition/date_calendar'
+ *     notes='http://templates.mpiwg-berlin.mpg.de/ismi/fieldDefinition/date_notes'
+ *     date_day='http://templates.mpiwg-berlin.mpg.de/ismi/fieldDefinition/date_day'
+ *     date_from='http://templates.mpiwg-berlin.mpg.de/ismi/fieldDefinition/date_from'
+ *     date_until='http://templates.mpiwg-berlin.mpg.de/ismi/fieldDefinition/date_until'
+ *     ]]">
+ *   <semantic-form-text-input for="label"></semantic-form-text-input>
+ *   <semantic-form-select-input for="type"></semantic-form-select-input>
+ *   <semantic-form-select-input for="calendar"></semantic-form-select-input>
+ *   <semantic-form-calendardate-input for="date_day"></semantic-form-calendardate-input>
+ *   <semantic-form-calendardate-input for="date_from" yearstart="true"></semantic-form-calendardate-input>
+ *   <semantic-form-calendardate-input for="date_until" yearend="true"></semantic-form-calendardate-input>
+ *   <semantic-form-text-input for="notes"></semantic-form-text-input>
+ * </semantic-form-composite-timespan-input>
+ */
 export class CompositeTimespanInput extends SingleValueInput<ComponentProps, CompositeTimespanState> {
   public static readonly inputKind = InputKind.CompositeInput;
 
