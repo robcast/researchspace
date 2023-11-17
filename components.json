@@ -65,6 +65,7 @@
   "semantic-form-switch": "platform/components/forms/inputs/FormSwitch.tsx",
   "semantic-form-switch-case": "platform/components/forms/inputs/FormSwitchCase.tsx",
   "semantic-form-text-input": "platform/components/forms/inputs/PlainTextInput.ts",
+  "semantic-form-interactive-query-text-input": "platform/components/forms/inputs/InteractiveQueryTextInput.ts",
   "semantic-form-hidden-input": "platform/components/forms/inputs/HiddenInput.ts",
   "semantic-form-select-input": "platform/components/forms/inputs/SelectInput.ts",
   "semantic-form-checklist-input": "platform/components/forms/inputs/ChecklistInput.tsx",
