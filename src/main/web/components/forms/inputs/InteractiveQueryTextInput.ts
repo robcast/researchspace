@@ -1,5 +1,6 @@
 /**
- * ResearchSpace
+ * InteractiveQueryTextInput
+ * Copyright (C) 2023, Robert Casties, MPIWG
  * Copyright (C) 2020, © Trustees of the British Museum
  * Copyright (C) 2015-2019, metaphacts GmbH
  *
@@ -28,7 +29,6 @@ import ReactSelectComponent from 'react-select';
 const ReactSelect = createFactory(ReactSelectComponent);
 
 import { Rdf, vocabularies, XsdDataTypeValidation } from 'platform/api/rdf';
-import { ComponentContext } from 'platform/api/components';
 import { SparqlClient, SparqlUtil } from 'platform/api/sparql';
 
 import { FieldDefinition, getPreferredLabel } from '../FieldDefinition';
@@ -51,6 +51,7 @@ export interface InteractiveQueryTextInputProps extends AtomicValueInputProps {
   query: string;
   repository?: string;
   resultprefix?: string;
+  resultpostfix?: string;
 }
 
 interface State {
@@ -62,8 +63,6 @@ interface State {
 export class InteractiveQueryTextInput extends AtomicValueInput<InteractiveQueryTextInputProps, State> {
   private hasFocus = false;
   private languages: string[];
-  private query: string;
-  private repository: string;
 
   constructor(props: InteractiveQueryTextInputProps, context: any) {
     super(props, context);
@@ -90,7 +89,7 @@ export class InteractiveQueryTextInput extends AtomicValueInput<InteractiveQuery
     return D.div(
       { className: 'plain-text-field' },
       D.div({ className: 'plain-text-field__inputs' }, this.renderElement(), this.renderLanguageSelect()),
-      D.div({ className: 'interactive-query-text-field__result' }, this.renderQueryResult()),
+      D.div({ className: 'interactive-query-result-field form-control' }, this.renderQueryResult()),
       createElement(ValidationMessages, { errors: FieldValue.getErrors(this.props.value) })
     );
   }
@@ -251,14 +250,19 @@ export class InteractiveQueryTextInput extends AtomicValueInput<InteractiveQuery
   }
 
   private renderQueryResult(): ReactElement<any> {
-    let result = this.props.resultprefix ? this.props.resultprefix : "";
+    let result = "";
     if (this.state.queryResult) {
       const res = this.state.queryResult.get();
       if (!SparqlUtil.isSelectResultEmpty(res)) {
         const firstBindingVar = res.head.vars[0];
-        result += res.results.bindings[0][firstBindingVar].value;
+        result = res.results.bindings[0][firstBindingVar].value;
       }
     }
+    if (this.props.resultprefix)
+      result = this.props.resultprefix + result; 
+    if (this.props.resultpostfix)
+      result = result + this.props.resultpostfix;
+      
     return D.span(null, result);
   }
 
