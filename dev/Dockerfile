@@ -18,4 +18,5 @@ VOLUME ["/workdir/node_modules"]
 
 EXPOSE 3000 10214 5005
 
-CMD ["/workdir/gradlew", "appStart"]
+ENTRYPOINT ["/workdir/gradlew"]
+CMD ["appStart"]
