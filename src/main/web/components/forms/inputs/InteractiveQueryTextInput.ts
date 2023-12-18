@@ -58,6 +58,7 @@ interface State {
   text: string;
   language: string;
   queryResult: string;
+  queryError?: string;
 }
 
 export class InteractiveQueryTextInput extends AtomicValueInput<InteractiveQueryTextInputProps, State> {
@@ -251,6 +252,10 @@ export class InteractiveQueryTextInput extends AtomicValueInput<InteractiveQuery
 
   private renderQueryResult(): ReactElement<any> {
     let result = "";
+    if (this.state.queryError) {
+      console.error('InteractiveQuery Error', this.state.queryError);
+      result = '[ERROR]';
+    }
     if (this.state.queryResult) {
       const res = this.state.queryResult.get();
       if (!SparqlUtil.isSelectResultEmpty(res)) {
@@ -285,12 +290,14 @@ export class InteractiveQueryTextInput extends AtomicValueInput<InteractiveQuery
     SparqlClient.select(query, { context })
       .onValue((result) =>
         this.setState({
-          queryResult: maybe.Just(result)
+          queryResult: maybe.Just(result),
+          queryError: null
         })
       )
       .onError((error) =>
         this.setState({
-          queryResult: error
+          queryResult: null,
+          queryError: error
         })
       );
   };
