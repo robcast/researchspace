@@ -1,0 +1,21 @@
+version: "3"
+services:
+  rs-dev:
+    container_name: "rs-dev"
+    build: 
+      dockerfile: dev/Dockerfile
+    image: rs-dev
+    ports:
+      - "3000:3000"
+      - "10214:10214"
+      # Java debugger
+      - "5005:5005"
+    volumes:
+      - .:/workdir
+      - node_modules:/workdir/node_modules
+    networks:
+      - default
+  
+volumes:
+  node_modules:
+  

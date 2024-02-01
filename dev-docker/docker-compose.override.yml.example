@@ -1,0 +1,23 @@
+version: "3.4"
+
+services:
+  blazegraph:
+    image: robcast/researchspace-blazegraph:2.2.0-20160908
+    restart: unless-stopped
+    ports:
+      - 10215:8080
+    volumes:
+      - ./data/config/:/config:ro
+      - ./data/blazegraph:/blazegraph-data
+    environment:
+      - "JAVA_OPTS=-Xmx2g -Dorg.eclipse.jetty.server.Request.maxFormContentSize=4000000"
+    logging:
+      driver: local
+
+  rs-dev:
+    #command: ["./gradlew", "run"]
+    depends_on:
+      - blazegraph
+    volumes:
+      # mount ismi app from ismi-researchspace
+      #- /Users/casties/Documents/Eclipse/ismi-researchspace/researchspace/apps/ismi/:/workdir/runtime-data/apps/ismi/:ro
