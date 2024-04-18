@@ -297,7 +297,8 @@ ext {
     LOG4J_VERSION = '2.15.0'
     JERSEY_VERSION = '2.30.1'
     JACKSON_VERSION = '2.10.3'
-    GUICE_VERSION = '4.2.3'
+//    GUICE_VERSION = '4.2.3'
+    GUICE_VERSION = '5.1.0'
     SHIRO_VERSION = '1.7.1'
     IMAGEIO_VERSION = '3.5'
 }
@@ -404,7 +405,8 @@ dependencies {
         "org.apache.shiro:shiro-guice:${SHIRO_VERSION}",
 
         //templates
-        "com.github.jknack:handlebars:4.2.0",
+        //"com.github.jknack:handlebars:4.2.0",
+        "com.github.jknack:handlebars:4.3.0",
 
         //semantic versioning
         "com.github.zafarkhaja:java-semver:0.9.0",

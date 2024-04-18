@@ -2,7 +2,7 @@ FROM buildpack-deps:bullseye
 WORKDIR /workdir
 
 RUN apt update
-RUN apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates openjdk-11-jdk python2
+RUN apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates openjdk-17-jdk python2
 
 # Install Node.js v14x
 RUN curl -fsSL https://deb.nodesource.com/setup_14.x | bash -

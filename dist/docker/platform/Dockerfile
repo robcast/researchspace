@@ -1,6 +1,6 @@
-ARG JETTY_VERSION=9.4.27-jre11
+ARG JETTY_VERSION=9.4.54-jre17
 FROM jetty:${JETTY_VERSION}
-MAINTAINER ResearchSpace researchspace@britishmuseum.org
+#MAINTAINER ResearchSpace researchspace@britishmuseum.org
 
 LABEL maintainer="ResearchSpace researchspace@britishmuseum.org"
 
