@@ -1,7 +1,6 @@
-ARG JETTY_VERSION=9.4.54-jre11
+ARG JETTY_VERSION=9.4.58-jre21
 FROM jetty:${JETTY_VERSION}
-MAINTAINER ResearchSpace researchspace@britishmuseum.org
-
+#MAINTAINER ResearchSpace researchspace@britishmuseum.org
 LABEL maintainer="ResearchSpace researchspace@britishmuseum.org"
 
 USER root
@@ -19,7 +18,7 @@ RUN groupmod -g 101 jetty
 # add user jetty to group root which is used for most of the permissions
 # user jetty has uid 100
 # group root has gid 0
-RUN addgroup jetty root
+RUN adduser jetty root
 
 # make group 'root' (no special permissions!) owning group of the various jetty base, home, and temp folders
 # to allow the container to be run by non-root and non-jetty users as well (this is required e.g. for OpenShift)
