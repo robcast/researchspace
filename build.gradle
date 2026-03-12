@@ -123,10 +123,11 @@ farms {
             contextPath: '/blazegraph',
             overlays: [':blazegraph-vocabularies']
 
-        // setup digilib for local development
+        /* setup digilib for local development
         webapp 'digilib:digilib-webapp:2.9.1',
             contextPath: '/digilib',
             initParameters: ["config-file": "./bundle-config/digilib-config.xml"]
+            */
 
         webapp project,
             contextPath: '/'
@@ -137,8 +138,8 @@ products {
     product 'researchspace', {
         additionalFiles = [
             "./bundle-config/RWStore.properties": "./bundle-config/RWStore.properties",
-            "./bundle-config/digilib-config.xml": "./bundle-config/digilib-config.xml",
-            "./bundle-config/digilib-log4j-config.xml": "./bundle-config/digilib-log4j-config.xml",
+            //"./bundle-config/digilib-config.xml": "./bundle-config/digilib-config.xml",
+            //"./bundle-config/digilib-log4j-config.xml": "./bundle-config/digilib-log4j-config.xml",
             "./bundle-config/ZipReadme.txt": "./README.txt",
             "./bundle-config/Java11PrerequisitesCheckAndInstallationSteps.txt":"./Java11PrerequisitesCheckAndInstallationSteps.txt",
             "./LICENSE": "./LICENSE.txt",
@@ -148,7 +149,7 @@ products {
             "./bundle-config/runtime-data/config/global.prop": "./runtime-data/config/global.prop",
             // add ui.prop and IIIFConfig template for digilib as in the codebase ui.prop and IIIFConfig are for cantaloupe
             "./bundle-config/runtime-data/config/ui.prop": "./runtime-data/config/ui.prop",
-            "./bundle-config/runtime-data/data/templates/http%3A%2F%2Fwww.researchspace.org%2Fresource%2FIIIFConfig.html": "./runtime-data/data/templates/http%3A%2F%2Fwww.researchspace.org%2Fresource%2FIIIFConfig.html",
+            //"./bundle-config/runtime-data/data/templates/http%3A%2F%2Fwww.researchspace.org%2Fresource%2FIIIFConfig.html": "./runtime-data/data/templates/http%3A%2F%2Fwww.researchspace.org%2Fresource%2FIIIFConfig.html",
             "${projectDir.getAbsolutePath()}/src/main/resources/org/researchspace/apps/default/config/shiro.ini": "./runtime-data/config/shiro.ini"
         ]
     }
@@ -160,21 +161,21 @@ def defaultJvmArgs = [
 
     // for properties that get value from project.properties see gradle.properties file for more details
     "-Dconfig.environment.sparqlEndpoint=${project.properties['sparqlEndpoint']}",
-    "-Dconfig.proxy.IIIF.targetUri=${project.properties['iiifScaler']}",
-    "-Dconfig.environment.upload-iiifFolder=file://${projectDir.getAbsolutePath()}${project.properties['iiifFolder']}",
+    //"-Dconfig.proxy.IIIF.targetUri=${project.properties['iiifScaler']}",
+    //"-Dconfig.environment.upload-iiifFolder=file://${projectDir.getAbsolutePath()}${project.properties['iiifFolder']}",
 
     // delopment storages for image upload functionality
-    "-Dconfig.storage.images.type=nonVersionedFile",
-    "-Dconfig.storage.images.mutable=true",
+    //"-Dconfig.storage.images.type=nonVersionedFile",
+    //"-Dconfig.storage.images.mutable=true",
 
     // delopment storages for other media upload functionality
-    "-Dconfig.storage.media.type=nonVersionedFile",
-    "-Dconfig.storage.media.mutable=true",
+    //"-Dconfig.storage.media.type=nonVersionedFile",
+    //"-Dconfig.storage.media.mutable=true",
 
 
     // tmp storage is needed for image upload functionality
-    "-Dconfig.storage.tmp.type=nonVersionedFile",
-    "-Dconfig.storage.tmp.mutable=true",
+    //"-Dconfig.storage.tmp.type=nonVersionedFile",
+    //"-Dconfig.storage.tmp.mutable=true",
 
    // "-Dconfig.global.loadDefaultConfig=1",
 
@@ -209,19 +210,19 @@ gretty {
             "-DruntimeDirectory=./runtime-data",
             "-Dorg.researchspace.config.baselocation=./runtime-data/config",
 
-            "-Dconfig.storage.images.root=./runtime-data/images",
-            "-Dconfig.storage.tmp.root=./runtime-data/tmp",
+            //"-Dconfig.storage.images.root=./runtime-data/images",
+            //"-Dconfig.storage.tmp.root=./runtime-data/tmp",
 
-            "-Dconfig.storage.media.root=./runtime-data/media",
+            //"-Dconfig.storage.media.root=./runtime-data/media",
 
             "-Dlog4j.configurationFile=classpath:org/researchspace/logging/log4j2.xml",
         ]
     } else {
         jvmArgs = defaultJvmArgs + [
-            "-Dconfig.storage.images.root=${project.properties['imageStorageRoot']}",
-            "-Dconfig.storage.tmp.root=${java.nio.file.Files.createTempDirectory('images-tmp')}",
+            //"-Dconfig.storage.images.root=${project.properties['imageStorageRoot']}",
+            //"-Dconfig.storage.tmp.root=${java.nio.file.Files.createTempDirectory('images-tmp')}",
 
-            "-Dconfig.storage.media.root=${project.properties['mediaStorageRoot']}",
+            //"-Dconfig.storage.media.root=${project.properties['mediaStorageRoot']}",
           
             // set development mode to true to make sure that assets are always up to date
             // see bindings for AssetsMapProvider in MainGuiceModule.java
