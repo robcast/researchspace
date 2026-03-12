@@ -321,9 +321,9 @@ export class MainAppComponent extends Component<
           // we have two header elements, because number of elements changes react can't properly
           // unify components and fully recreate route component.
           createElement(this.state.route, { key: 'page-holder' }),
+          this.state.footerHTML.isNothing ? null : this.state.footerHTML.get()
         )
-      ),
-      this.state.footerHTML.isNothing ? null : this.state.footerHTML.get()
+      )
     );
   }
 
