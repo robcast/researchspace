@@ -55,20 +55,8 @@ import {
 
 import { InputKind } from './InputCommpons';
 
-import DateObject from 'react-date-object';
-import gregorian from 'react-date-object/calendars/gregorian';
-import julian from 'react-date-object/calendars/julian';
-import arabic from 'react-date-object/calendars/arabic';
-import persian from 'react-date-object/calendars/persian';
-import jalali from 'react-date-object/calendars/jalali';
-import indian from 'react-date-object/calendars/indian';
-import gregorian_en from 'react-date-object/locales/gregorian_en';
-import arabic_en from 'react-date-object/locales/arabic_en';
-import persian_en from 'react-date-object/locales/persian_en';
-import indian_en from 'react-date-object/locales/indian_en';
-import CardinalitySupport from './CardinalitySupport';
+import { convertXsdToCalendarDate } from './CalendarDatePickerInput';
 
-const XSD_DATE_FORMAT = 'YYYY-MM-DD';
 const DATE_LABEL_FORMAT = 'YYYY-M-D';
 
 export interface CompositeTimespanState {
@@ -288,8 +276,8 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       const untilField = newValue.fields.get('date_until');
       const untilXsdDate = getDatePickerValue(untilField);
       if (fromXsdDate && untilXsdDate) {
-        const fromCalDate = convertToCalendarDate(fromXsdDate, calendar);
-        const untilCalDate = convertToCalendarDate(untilXsdDate, calendar);
+        const fromCalDate = convertXsdToCalendarDate(fromXsdDate, calendar);
+        const untilCalDate = convertXsdToCalendarDate(untilXsdDate, calendar);
         if (type === 'year') {
           timespanLabel = fromCalDate.format('YYYY') 
             + ' (' + calendar + ')';
@@ -303,7 +291,7 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
       const dayField = newValue.fields.get('date_day');
       const dayXsdDate = getDatePickerValue(dayField);
       if (dayXsdDate) {
-        const dayCalDate = convertToCalendarDate(dayXsdDate, calendar);
+        const dayCalDate = convertXsdToCalendarDate(dayXsdDate, calendar);
         timespanLabel = dayCalDate.format(dateLabelFormat)
             + ' (' + calendar + ')';
       }
@@ -534,9 +522,9 @@ class CompositeTimespanHandler implements SingleValueHandler {
     if (type === 'year') {
       const calendar = getSelectValue(value.fields.get('calendar'));
       const fromIsoDate = getDatePickerValue(value.fields.get('date_from'));
-      const fromDate = convertToCalendarDate(fromIsoDate, calendar);
+      const fromDate = convertXsdToCalendarDate(fromIsoDate, calendar);
       const untilIsoDate = getDatePickerValue(value.fields.get('date_until'));
-      const untilDate = convertToCalendarDate(untilIsoDate, calendar);
+      const untilDate = convertXsdToCalendarDate(untilIsoDate, calendar);
       // compare years
       if (fromDate?.year !== untilDate?.year) {
         yearError = "Start and end year must be the same in 'year' mode!";
@@ -717,25 +705,6 @@ function getDatePickerValue(field: FieldState) {
     return val.value.value;
   }
   return null;
-}
-
-// convert isoDate to DateObject in current calendar
-function convertToCalendarDate(isoDate: string, calendar: string): DateObject {
-  if (!isoDate) return undefined;
-  switch (calendar) {
-    case 'gregorian':
-      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(gregorian, gregorian_en);
-    case 'islamic':
-      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(arabic, arabic_en);
-    case 'persian':
-      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(persian, persian_en);
-    case 'jalali':
-      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(jalali, persian_en);
-    case 'indian':
-      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(indian, indian_en);
-    case 'julian':
-      return new DateObject({date: isoDate, format: XSD_DATE_FORMAT}).convert(julian, gregorian_en);
-  }
 }
 
 SingleValueInput.assertStatic(CompositeTimespanInput);

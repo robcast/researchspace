@@ -262,6 +262,25 @@ export function dateObjectFromRdfLiteral(literal: Rdf.Literal | undefined): Date
   return parsedDate;
 }
 
+// convert isoDate to DateObject in given calendar
+export function convertXsdToCalendarDate(isoDate: string, calendar: string): DateObject {
+  if (!isoDate) return undefined;
+  switch (calendar) {
+    case 'gregorian':
+      return new DateObject({date: isoDate, format: INPUT_XSD_DATE_FORMAT}).convert(gregorian, gregorian_en);
+    case 'islamic':
+      return new DateObject({date: isoDate, format: INPUT_XSD_DATE_FORMAT}).convert(arabic, arabic_en);
+    case 'persian':
+      return new DateObject({date: isoDate, format: INPUT_XSD_DATE_FORMAT}).convert(persian, persian_en);
+    case 'jalali':
+      return new DateObject({date: isoDate, format: INPUT_XSD_DATE_FORMAT}).convert(jalali, persian_en);
+    case 'indian':
+      return new DateObject({date: isoDate, format: INPUT_XSD_DATE_FORMAT}).convert(indian, indian_en);
+    case 'julian':
+      return new DateObject({date: isoDate, format: INPUT_XSD_DATE_FORMAT}).convert(julian, gregorian_en);
+  }
+}
+
 function defaultPlaceholder(definition: FieldDefinition, mode: DatePickerMode) {
   const fieldName = (getPreferredLabel(definition.label) || mode).toLocaleLowerCase();
   return `Select or enter ${fieldName} here...`;
