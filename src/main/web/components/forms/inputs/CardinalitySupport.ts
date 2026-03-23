@@ -76,7 +76,7 @@ export class CardinalitySupport extends MultipleValuesInput<CardinalitySupportPr
    */
   private valueKeys: string[] = [];
 
-  private readonly inputs = new Map<string, ChildInput[]>();
+  readonly inputs = new Map<string, ChildInput[]>();
   private lastRenderedDataState: DataState | undefined;
 
   private getHandler(): CardinalitySupportHandler {

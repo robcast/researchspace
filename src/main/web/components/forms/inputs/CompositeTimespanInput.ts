@@ -56,6 +56,7 @@ import {
 import { InputKind } from './InputCommpons';
 
 import { convertXsdToCalendarDate } from './CalendarDatePickerInput';
+import CardinalitySupport from './CardinalitySupport';
 
 const DATE_LABEL_FORMAT = 'YYYY-M-D';
 
@@ -302,8 +303,14 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
     labelValue = AtomicValue.set(labelValue, {value: Rdf.literal(timespanLabel)});
     labelState = FieldState.set(labelState, {values: labelState.values.set(0, labelValue)});
     newValue = CompositeValue.set(newValue, {fields: newValue.fields.set('label', labelState)})
-    // setting visible label element through inputRefs doesn't work any more
-    console.log("updating label to ", timespanLabel);
+    // set label element state wrapped in CardinalitySupport
+    const labelRefs = this.inputRefs.get('label') as CardinalitySupport[];
+    for (const ref of labelRefs) {
+      ref.inputs.forEach((input) => {
+        const textField = input[0];
+        textField?.setState({text: timespanLabel});
+      });
+    }
     return newValue;
   }
 
@@ -449,8 +456,12 @@ export class CompositeTimespanInput extends SingleValueInput<ComponentProps, Com
           // omit unused calendar select
           return null;
         } else {
-          return child;
+          // suppress edit resource icon
+          return cloneElement(child, {'readonlyResource': true});
         }
+      } else if (name === 'type') {
+        // suppress edit resource icon
+        return cloneElement(child, {'readonlyResource': true});
       } else {
         return child;
       }
