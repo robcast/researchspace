@@ -135,7 +135,7 @@ class PageEditorToolbarComponent extends Component<PageEditorToolbarProps, PageE
             )
           : null,
         ...(this.state.showExploreActions ? this.renderExploreActions() : [null]),
-        this.state.pageIsResource ? this.renderIriCopyAction() : null
+        this.state.showExploreActions ? this.renderIriCopyAction() : null
       )
     );
   }
